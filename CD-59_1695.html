@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CD -59° 1695 恒星系统 · 演化历程动画</title>
+<style>
+  :root{
+    --bg:#050510; --panel:#0d0d1f; --panel2:#12122a; --line:#26264a;
+    --txt:#e8e8ff; --dim:#9a9ac0; --accent:#ffb347; --accent2:#7ec8ff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:radial-gradient(ellipse at 50% -20%, #141430 0%, var(--bg) 60%);
+       color:var(--txt);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  header{text-align:center;padding:26px 16px 8px}
+  header h1{font-size:clamp(20px,3.4vw,34px);letter-spacing:1px;
+    background:linear-gradient(90deg,#ffd9a0,#ff9d6c,#c89bff,#7ec8ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  header p{color:var(--dim);font-size:13px;margin-top:6px}
+  .wrap{width:min(1080px,96vw);display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .stage-card{flex:1 1 640px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  canvas{display:block;width:100%;height:460px;background:#030308}
+  .controls{display:flex;align-items:center;gap:10px;padding:12px 14px;
+    background:var(--panel2);border-top:1px solid var(--line);flex-wrap:wrap}
+  button{cursor:pointer;border:1px solid var(--line);background:#1a1a38;color:var(--txt);
+    border-radius:8px;padding:7px 16px;font-size:14px;transition:.2s}
+  button:hover{background:#26265a;border-color:#4a4a8a}
+  select{background:#1a1a38;color:var(--txt);border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;font-size:13px}
+  input[type=range]{flex:1;min-width:180px;accent-color:var(--accent)}
+  .side{flex:1 1 320px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h2{font-size:13px;color:var(--accent2);letter-spacing:2px;margin-bottom:10px;
+    text-transform:uppercase}
+  .kv{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;
+    border-bottom:1px dashed #1e1e40}
+  .kv:last-child{border-bottom:none}
+  .kv b{color:var(--accent);font-weight:600;text-align:right;max-width:62%}
+  .bigstage{font-size:19px;font-weight:700;color:var(--accent);margin-bottom:4px}
+  .spect{font-size:12px;color:var(--dim)}
+  .chat{height:190px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+    scrollbar-width:thin}
+  .msg{max-width:92%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;
+    animation:pop .35s ease}
+  .msg.star{align-self:flex-start;background:#241d3d;border:1px solid #4a3a7a}
+  .msg.planet{align-self:flex-end;background:#0f2b3d;border:1px solid #1f5a7a}
+  .msg.sys{align-self:center;background:#3d241d;border:1px solid #7a4a1a;text-align:center}
+  .msg .who{display:block;font-size:11px;color:var(--dim);margin-bottom:3px}
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);
+    padding:0 14px 8px;background:var(--panel2)}
+  #toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);
+    background:#2a1440;border:1px solid #7a3aa0;color:#f0d8ff;padding:10px 22px;
+    border-radius:999px;font-size:14px;transition:transform .4s;z-index:9;box-shadow:0 6px 24px rgba(120,40,200,.4)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  footer{color:var(--dim);font-size:11px;padding:16px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>✦ CD −59° 1695 恒星系统 · 演化历程 ✦</h1>
+  <p>从星云坍缩到质子衰变 —— 一颗 1.7 倍太阳质量 A8V 恒星的 10⁴⁰ 年旅程（对数时间轴）</p>
+</header>
+
+<div class="wrap">
+  <div class="stage-card">
+    <canvas id="cv" width="960" height="460"></canvas>
+    <div class="controls">
+      <button id="playBtn">▶ 播放</button>
+      <button id="restartBtn">⟲ 重来</button>
+      <label style="font-size:12px;color:var(--dim)">速度</label>
+      <select id="speed">
+        <option value="0.4">0.5×</option>
+        <option value="0.8" selected>1×</option>
+        <option value="1.6">2×</option>
+        <option value="3.2">4×</option>
+      </select>
+      <input type="range" id="scrub" min="0" max="10000" value="0">
+      <span id="clock" style="font-size:13px;color:var(--accent);white-space:nowrap">诞生前 5000 万年</span>
+    </div>
+    <div class="ticks"><span>星云</span><span>诞生</span><span>10亿年</span><span>30亿年</span><span>红巨星</span><span>白矮星</span><span>10¹²年</span><span>10²⁴年</span><span>黑矮星</span><span>终结</span></div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <h2>当前状态</h2>
+      <div class="bigstage" id="dStage">星云</div>
+      <div class="spect" id="dSpec">Molecular Cloud · 直径数光年</div>
+      <div class="kv"><span>时间</span><b id="dTime">–</b></div>
+      <div class="kv"><span>质量</span><b id="dMass">–</b></div>
+      <div class="kv"><span>半径</span><b id="dR">–</b></div>
+      <div class="kv"><span>光度</span><b id="dL">–</b></div>
+      <div class="kv"><span>表面温度</span><b id="dT">–</b></div>
+      <div class="kv"><span>行星 b</span><b id="dP">尚未形成</b></div>
+    </div>
+    <div class="card">
+      <h2>恒星日志 / 对话</h2>
+      <div class="chat" id="chat"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<footer>数据基于 Odd Squad (In simple cosmos version) Wiki 演化时间线 · 本页面为粉丝向娱乐可视化，非严谨天文数据</footer>
+
+<script>
+/* ---------- 数据：来自演化时间表的关键帧 [t(年), 半径R☉, 温度K, 光度L☉, 阶段, 光谱型, 质量M☉] ---------- */
+const K = [
+ [-5.0e7,  null,  null,  null, "星云", "Molecular Cloud", null],
+ [-3.0e7,  124.62,3613, 2385, "原恒星", "M3IIIe", 3.114],
+ [-2.25e7, 8.11,  5224,  44.1, "金牛T星", "G9IIIe", 2.21],
+ [-1.25e7, 2.41,  6619,  10.0, "林忠四郎轨迹", "F5IVe", 1.81],
+ [-2.5e6,  1.622, 7759, 8.59, "亨耶轨迹", "A9V (Pre-MS)", 1.714],
+ [0,       1.488, 8022, 8.26, "零龄主序 (ZAMS)", "A8V", 1.704],
+ [1.0e9,   1.633, 7920, 9.45, "主序星", "A8V", 1.704],
+ [2.0e9,   1.822, 7812, 11.1, "主序星", "A8V–A9V", 1.704],
+ [2.5e9,   1.93,  7756, 12.1, "晚主序星", "A9V", 1.704],
+ [2.8e9,   2.204, 7682, 15.2, "晚主序星", "A9V", 1.704],
+ [2.825e9, 2.205, 7814, 16.3, "亚巨星 · 钩状阶段", "A8V–A9V", 1.704],
+ [2.89e9,  3.893, 5938, 17.0, "赫氏空隙", "G1IV", 1.704],
+ [2.95e9,  9.0,   5256, 55.6, "红巨星支", "G9IIIb", 1.704],
+ [3.02e9,  22.37, 4744, 228,  "红巨星支", "K3III", 1.696],
+ [3.046e9, 72.9,  4052, 1292, "红巨星支 · 半规则变星", "K8III–K9III", 1.655],
+ [3.049e9, 104.4, 3769, 1982, "红巨星支 · 半规则变星", "M2III–M3III", 1.636],
+ [3.05e9,  116.6, 3703, 2304, "红巨星支顶端", "M3III", 1.628],
+ [3.050025e9,97.3,3968, 2114, "氦闪！", "M0III", 1.627],
+ [3.051e9, 12.07, 5122, 90.3, "红团簇", "K0III", 1.624],
+ [3.15e9,  16.0,  5124, 159,  "红团簇", "K0III", 1.624],
+ [3.155e9, 18.4,  5008, 192,  "渐近巨星分支 (AGB)", "K1III", 1.623],
+ [3.18e9,  50.7,  4270, 769,  "AGB", "K7III", 1.608],
+ [3.195e9, 160,   3634, 4026, "AGB · 半规则变星", "M3III", 1.356],
+ [3.199e9, 282,   3170, 7244, "AGB · 半规则变星", "M6III", 1.03],
+ [3.2e9,   319.09,3100, 8472, "热脉动AGB · 最大体积！", "M6III–M7III", 0.685],
+ [3.2001e9,2.056, 37844,7810,"行星状星云（核心）", "O5Iep / sdB3", 0.683],
+ [3.200101e9,null,null,null,"新星爆发！", "N", 0.682],
+ [3.201e9, 0.0766,121448,1152,"碳氧白矮星", "wdO7 / DA0.2", 0.682],
+ [1.0e10,  0.0174,65229,4.96, "白矮星冷却中", "wdO8–wdO9 / DA0.9", 0.682],
+ [1.0e11,  0.0165,40105,0.63, "白矮星冷却中", "wdB3–wdB4 / DA1.7", 0.682],
+ [1.0e12,  0.0152,24314,0.073,"白矮星冷却中", "wdB7 / DA3.1", 0.682],
+ [1.0e15,  0.0127,9849, 1.5e-4,"白矮星冷却中", "wdF0 / DA6.1", 0.682],
+ [1.0e18,  0.0120,2800, 2.0e-5,"白矮星冷却中", "wdK8 / DA10.8", 0.682],
+ [1.0e24,  0.0114,1419, 4.6e-7,"白矮星冷却中", "wdT8 / DA46", 0.682],
+ [1.0e27,  0.0112,310,  1.0e-9,"黑矮星（不再发光）", "BD", 0.682],
+ [1.0e40,  0,     0,    0,   "质子衰变 · 终结", "—", 0],
+];
+/* ---------- 事件对话 ---------- */
+const EV = [
+ [-5.0e7,"sys","星云开始坍缩，即将孕育出恒星 CD −59° 1695"],
+ [-3.0e7,"star","大家好！我在星云中诞生了！(Formation of the star CD −59° 1695)"],
+ [0,     "planet","你好 CD-59°1695，我在原行星盘中形成了！我是行星 b"],
+ [1.0e9, "planet","好无聊……我没有朋友。能给我讲讲气态巨行星吗？"],
+ [1.0e9, "star","气态巨行星被氢和氦大气覆盖，比如木星——比岩石行星大但密度更低"],
+ [1.5e9, "planet","你的寿命有多长？我好无聊……"],
+ [1.5e9, "star","约30亿年，已过半。氢耗尽后我会膨胀成红巨星——你离我太近，恐怕活不过那个阶段"],
+ [2.5e9, "planet","AGB 阶段你最大能膨胀到多大？"],
+ [2.5e9, "star","约320倍太阳半径。可惜你离我太近，大概率撑不过去……"],
+ [2.825e9,"star","⚠ 警告：氢燃料不足！开始执行钩状阶段 (Hook Stage)……"],
+ [2.91e9,"star","⛔ 错误：氢燃料低于 5%，开始膨胀……"],
+ [3.05e9,"planet","(HP −99999) 该死，我被红巨星吞噬了……"],
+ [3.05e9,"star","你被拖进了我的表面——因为你离我太近了"],
+ [3.050025e9,"star","💀 致命错误：氢燃料耗尽，执行氦闪，开始燃烧氦燃料！"],
+ [3.155e9,"star","⚠ 警告：氦燃料耗尽，开始膨胀并损失质量……"],
+ [3.2e9, "sys","恒星达到最大体积：319 倍太阳半径、8,472 倍太阳光度、表面 2,827°C"],
+ [3.2001e9,"star","💀 致命错误：氦燃料耗尽，开始坍缩并向白矮星演变……"],
+ [3.200101e9,"sys","✦ 恒星爆发为一颗普通新星 (Normal Novae)！"],
+ [3.201e9,"star","再见了大家，我现在是一颗碳氧白矮星"],
+ [1.0e10,"sys","银河系与仙女座星系合并为「Milkomeda」星系"],
+ [1.0e14,"sys","简并纪开始——宇宙中的所有恒星都耗尽了燃料，不再有新恒星诞生"],
+ [1.0e27,"sys","从现在起，我是一颗不再发出可见光的黑矮星"],
+ [1.0e40,"sys","再见了大家……所有质子都已衰变，CD −59° 1695 从宇宙中消失了"],
+];
+
+/* ---------- 对数时间轴 ---------- */
+const S = t => Math.sign(t)*Math.log10(1+Math.abs(t));
+const S_MIN = S(-5e7), S_MAX = S(1e40);
+const Ks = K.map(k=>[S(k[0]),...k]);
+
+function lerp(a,b,f){return a+(b-a)*f}
+const objK=a=>({t:a[0],R:a[1],T:a[2],L:a[3],stage:a[4],spec:a[5],mass:a[6]});
+function stateAt(s){
+  if(s<=Ks[0][0]) return objK(K[0]);
+  for(let i=0;i<Ks.length-1;i++){
+    if(s>=Ks[i][0] && s<=Ks[i+1][0]){
+      const f=(s-Ks[i][0])/(Ks[i+1][0]-Ks[i][0]);
+      const a=K[i], b=K[i+1];
+      const mix=(x,y)=> (x==null||y==null)? (f<.5?(x??y):(y??x)) : Math.exp(lerp(Math.log(x),Math.log(y),f));
+      return {t:lerp(a[0],b[0],f), R:mix(a[1],b[1]), T:mix(a[2],b[2]), L:mix(a[3],b[3]),
+              stage:f<.5?a[4]:b[4], spec:f<.5?a[5]:b[5], mass:f<.5?a[6]:b[6]};
+    }
+  }
+  return objK(K[K.length-1]);
+}
+/* 黑体颜色近似 */
+function tempColor(T){
+  if(T==null) return [190,160,255];
+  const stops=[[300,[120,120,130]],[1400,[255,70,10]],[2800,[255,130,40]],[4500,[255,190,110]],
+    [5800,[255,240,205]],[8000,[255,255,255]],[12000,[205,225,255]],[40000,[150,180,255]]];
+  if(T<=stops[0][0]) return stops[0][1];
+  for(let i=0;i<stops.length-1;i++){
+    const [t1,c1]=stops[i],[t2,c2]=stops[i+1];
+    if(T>=t1&&T<=t2){const f=(T-t1)/(t2-t1);
+      return [Math.round(lerp(c1[0],c2[0],f)),Math.round(lerp(c1[1],c2[1],f)),Math.round(lerp(c1[2],c2[2],f))];}
+  }
+  return stops[stops.length-1][1];
+}
+/* ---------- 画布 ---------- */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const W=cv.width, H=cv.height, CX=W/2, CY=H/2;
+const ORBIT=130;                       // 行星 b 轨道半径(px)
+let sPos=S_MIN, playing=false, shownEv=new Set();
+let engulfT=-1, novaFlash=0, endFade=0;
+const nebPts=Array.from({length:140},()=>({a:Math.random()*6.283,r:40+Math.random()*260,s:.2+Math.random()*.9,h:Math.random()}));
+
+function drawStars(){ctx.fillStyle="#030308";ctx.fillRect(0,0,W,H);
+  for(let i=0;i<130;i++){const x=(i*173.3)%W,y=(i*97.7)%H;
+    ctx.globalAlpha=.25+.5*Math.abs(Math.sin(i*3.1+performance.now()/900));
+    ctx.fillStyle="#cdd6ff";ctx.fillRect(x,y,1.4,1.4);}
+  ctx.globalAlpha=1;}
+
+function drawNebula(alpha){
+  if(alpha<=0)return;
+  const g=ctx.createRadialGradient(CX,CY,10,CX,CY,300);
+  g.addColorStop(0,`rgba(150,110,255,${.28*alpha})`);g.addColorStop(.6,`rgba(90,60,200,${.12*alpha})`);
+  g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  nebPts.forEach(p=>{const wob=Math.sin(performance.now()/700*p.s+p.a*7)*8;
+    const x=CX+Math.cos(p.a)*(p.r+wob),y=CY+Math.sin(p.a)*(p.r+wob)*.62;
+    ctx.globalAlpha=.5*alpha*p.s;ctx.fillStyle=p.h>.5?"#b9a0ff":"#8fd0ff";
+    ctx.beginPath();ctx.arc(x,y,p.s*2.4,0,6.283);ctx.fill();});
+  ctx.globalAlpha=1;}
+
+function drawStar(st){
+  if(st.R==null) return;
+  let Rpx=Math.min(12*Math.sqrt(st.R), H/2-14);
+  const isRGBAGB=/红巨星|AGB|团簇|氦闪|亚巨|赫氏/.test(st.stage);
+  const puls=isRGBAGB? 1+0.045*Math.sin(performance.now()/160):1;
+  /* 新星爆发：白闪 */
+  if(novaFlash>0){ctx.fillStyle=`rgba(255,255,255,${novaFlash})`;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=`rgba(190,210,255,${novaFlash*.9})`;
+    ctx.beginPath();ctx.arc(CX,CY,60+400*(1-novaFlash),0,6.283);ctx.fill();
+    novaFlash=Math.max(0,novaFlash-.02);return;}
+  /* 行星状星云壳层 */
+  if(/行星状星云/.test(st.stage)){
+    const pr=lerp(Rpx,Rpx*4,(performance.now()%3000)/3000);
+    ctx.strokeStyle="rgba(120,200,255,.35)";ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(CX,CY,pr,0,6.283);ctx.stroke();
+    const g2=ctx.createRadialGradient(CX,CY,0,CX,CY,Rpx*4);
+    g2.addColorStop(0,"rgba(0,0,0,0)");g2.addColorStop(1,"rgba(140,220,255,.12)");
+    ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);}
+  const [r,g,b]=tempColor(st.T);
+  const glow=ctx.createRadialGradient(CX,CY,0,CX,CY,Rpx*puls*2.1);
+  glow.addColorStop(0,`rgba(${r},${g},${b},.5)`);glow.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+  const body=ctx.createRadialGradient(CX-Rpx*.25,CY-Rpx*.25,Rpx*.1,CX,CY,Rpx*puls);
+  body.addColorStop(0,"rgba(255,255,255,.95)");body.addColorStop(.25,`rgb(${r},${g},${b})`);
+  body.addColorStop(1,`rgb(${Math.max(0,r-90)},${Math.max(0,g-70)},${Math.max(0,b-60)})`);
+  ctx.globalAlpha=/黑矮星|终结|质子/.test(st.stage)? .55:1;
+  ctx.fillStyle=body;ctx.beginPath();ctx.arc(CX,CY,Math.max(Rpx*puls,2.2),0,6.283);ctx.fill();
+  ctx.globalAlpha=1;}
+
+function drawPlanet(st){
+  const born=st.t>=0, dead=st.t>=3.0503e9;
+  if(!born||dead||st.R==null) return;
+  const starR=Math.min(12*Math.sqrt(st.R),H/2-14);
+  ctx.strokeStyle="rgba(126,200,255,.18)";ctx.setLineDash([3,5]);
+  ctx.beginPath();ctx.arc(CX,CY,ORBIT,0,6.283);ctx.stroke();ctx.setLineDash([]);
+  let ang=performance.now()/1400, pr=ORBIT, alpha=1;
+  if(starR>=ORBIT){ /* 被吞没螺旋 */
+    if(engulfT<0)engulfT=performance.now();
+    const f=Math.min(1,(performance.now()-engulfT)/1800);
+    pr=lerp(ORBIT,starR*.55,f); alpha=1-f; ang+=f*14;
+    if(f>=1){toast("☄ 行星 b 被红巨星吞噬，拖入恒星表面摧毁");engulfT=-1;return;}
+  }
+  const x=CX+Math.cos(ang)*pr,y=CY+Math.sin(ang)*pr*.92;
+  const pg=ctx.createRadialGradient(x-3,y-3,1,x,y,8);
+  pg.addColorStop(0,"#cfe8ff");pg.addColorStop(1,"#3a6ea8");
+  ctx.globalAlpha=alpha;ctx.fillStyle=pg;
+  ctx.beginPath();ctx.arc(x,y,6.5,0,6.283);ctx.fill();ctx.globalAlpha=1;}
+
+/* ---------- UI ---------- */
+const $=id=>document.getElementById(id);
+function fmtT(t){
+  const pre=t<0; const a=Math.abs(t);
+  let s;
+  if(a>=1e40)s="10⁴⁰ 年";
+  else if(a>=1e12)s=(a/1e12).toLocaleString()+" 万亿年";
+  else if(a>=1e8)s=(a/1e8).toFixed(2)+" 亿年";
+  else if(a>=1e4)s=Math.round(a/1e4)+" 万年";
+  else s=Math.round(a).toLocaleString()+" 年";
+  return pre?"诞生前 "+s.replace(" 年"," 年").replace(/^诞生前 ([\d.]+) 亿年/,"诞生前 $1 亿年"):s;
+}
+function toast(txt){const el=$('toast');el.textContent=txt;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
+function chat(who,txt){
+  const div=document.createElement('div');
+  div.className="msg "+who;
+  const name=who==='star'?'★ CD −59° 1695':who==='planet'?'● 行星 b':'◈ 系统事件';
+  div.innerHTML=`<span class="who">${name}</span>${txt}`;
+  const c=$('chat');c.appendChild(div);c.scrollTop=c.scrollHeight;
+  while(c.children.length>30)c.removeChild(c.firstChild);}
+
+function updatePanel(st){
+  $('clock').textContent=fmtT(st.t);
+  $('dStage').textContent=st.stage;
+  $('dSpec').textContent=st.spec||'—';
+  $('dTime').textContent=fmtT(st.t);
+  $('dMass').textContent=st.mass? st.mass.toFixed(2)+" M☉":"—";
+  $('dR').textContent=st.R? (st.R>=1? st.R.toFixed(2)+" R☉":(st.R*100).toFixed(2)+"% R☉"):"—";
+  $('dL').textContent=st.L==null?"—":(st.L>=10? st.L.toFixed(1)+" L☉":st.L.toExponential(2)+" L☉");
+  $('dT').textContent=st.T? Math.round(st.T).toLocaleString()+" K ("+Math.round(st.T-273)+"°C)":"—";
+  $('dP').textContent=st.t<0?"尚未形成":st.t>=3.0503e9?"已被红巨星吞噬 ☠":"存活 · 表面温度上升中";}
+
+function checkEvents(prev,cur){
+  EV.forEach((e,i)=>{const s=S(e[0]);
+    if(prev<s&&cur>=s&&!shownEv.has(i)){shownEv.add(i);chat(e[1],e[2]);toast(e[2].slice(0,42));}});
+  if(prev<S(3.200101e9)&&cur>=S(3.200101e9))novaFlash=1;
+  if(prev<S(1e40)&&cur>=S(1e40))endFade=1;
+  if(cur<prev)EV.forEach((e,i)=>{if(S(e[0])>cur)shownEv.delete(i)});}
+
+let last=performance.now();
+function loop(now){
+  const dt=(now-last)/1000;last=now;
+  if(playing){
+    const sp=parseFloat($('speed').value);
+    const prev=sPos; sPos+=sp*dt;               // 每秒钟走 sp 个数量级
+    if(sPos>=S_MAX){sPos=S_MAX;playing=false;$('playBtn').textContent='▶ 播放';}
+    checkEvents(prev,sPos);
+    $('scrub').value=((sPos-S_MIN)/(S_MAX-S_MIN))*10000;}
+  drawStars();
+  const st=stateAt(sPos);
+  const nebA=sPos<S(-2.2e7)? Math.min(1,(S(-2.2e7)-sPos)/(S(-2.2e7)-S(-3.6e7)))+.15 :0;
+  drawNebula(Math.min(nebA,1));
+  if(sPos>=S(1e40)){ /* 终结 */ }
+  else{drawPlanet(st);drawStar(st);}
+  if(endFade>0){ctx.fillStyle=`rgba(3,3,8,${endFade})`;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="rgba(230,220,255,.9)";ctx.font="20px sans-serif";ctx.textAlign="center";
+    ctx.fillText("所有质子均已衰变 —— CD −59° 1695 消失在宇宙中",CX,CY);
+    endFade=Math.min(1,endFade+.004);}
+  updatePanel(st);
+  requestAnimationFrame(loop);}
+
+$('playBtn').onclick=()=>{if(sPos>=S_MAX-.01){sPos=S_MIN;shownEv.clear();}
+  playing=!playing;$('playBtn').textContent=playing?'⏸ 暂停':'▶ 播放';};
+$('restartBtn').onclick=()=>{sPos=S_MIN;shownEv.clear();engulfT=-1;endFade=0;$('chat').innerHTML='';};
+$('scrub').oninput=e=>{const f=e.target.value/10000;sPos=S_MIN+f*(S_MAX-S_MIN);
+  EV.forEach((ev,i)=>{if(S(ev[0])>sPos)shownEv.delete(i)});};
+
+chat('sys','欢迎使用 CD −59° 1695 演化模拟器。点击「播放」，见证一颗恒星从星云到质子衰变的 10⁴⁰ 年旅程。');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
