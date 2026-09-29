@@ -209,7 +209,19 @@ function tempColor(T){
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 const W=cv.width, H=cv.height, CX=W/2, CY=H/2;
 const ORBIT=130;                       // 行星 b 轨道半径(px)
-let sPos=S_MIN, playing=false, shownEv=new Set();
+let sPos=S_MIN, tPos=-5e7, playing=false, shownEv=new Set();
+const sToT=s=>Math.sign(s)*(Math.pow(10,Math.abs(s))-1);
+/* 各阶段每帧时间步长（基准 60fps）：主序 100万年/帧；原恒星、次巨星、赫氏空隙、红巨星、氦燃烧 10万年/帧；AGB 1万年/帧；白矮星 指数+1%/帧 */
+function rateFor(stage){
+  if(/行星状|新星/.test(stage)) return 1e4;
+  if(/AGB|渐近|热脉动/.test(stage)) return 1e4;
+  if(/氦闪|红团簇/.test(stage)) return 1e5;
+  if(/红巨星支/.test(stage)) return 1e5;
+  if(/赫氏/.test(stage)) return 1e5;
+  if(/亚巨星/.test(stage)) return 1e5;
+  if(/原恒星|金牛|林忠|亨耶/.test(stage)) return 1e5;
+  return 1e6; /* 主序星 & 星云 */
+}
 let engulfT=-1, novaFlash=0, endFade=0;
 const nebPts=Array.from({length:140},()=>({a:Math.random()*6.283,r:40+Math.random()*260,s:.2+Math.random()*.9,h:Math.random()}));
 
@@ -322,9 +334,16 @@ let last=performance.now();
 function loop(now){
   const dt=(now-last)/1000;last=now;
   if(playing){
-    const sp=parseFloat($('speed').value);
-    const prev=sPos; sPos+=sp*dt;               // 每秒钟走 sp 个数量级
-    if(sPos>=S_MAX){sPos=S_MAX;playing=false;$('playBtn').textContent='▶ 播放';}
+    const frames=Math.min(dt*60,3);                 // 折算帧数（限帧率波动）
+    const factor=parseFloat($('speed').value)/0.8*frames;
+    const prev=sPos, st0=stateAt(sPos);
+    if(/白矮星|黑矮星|质子衰变|终结/.test(st0.stage)){
+      tPos=tPos*Math.pow(1.01,factor);              // 白矮星阶段：每帧时间指数性 +1%
+    }else{
+      tPos+=rateFor(st0.stage)*factor;
+    }
+    if(tPos>=1e40){tPos=1e40;playing=false;$('playBtn').textContent='▶ 播放';}
+    sPos=S(tPos);
     checkEvents(prev,sPos);
     $('scrub').value=((sPos-S_MIN)/(S_MAX-S_MIN))*10000;}
   drawStars();
@@ -342,11 +361,11 @@ function loop(now){
 
 $('playBtn').onclick=()=>{if(sPos>=S_MAX-.01){sPos=S_MIN;shownEv.clear();}
   playing=!playing;$('playBtn').textContent=playing?'⏸ 暂停':'▶ 播放';};
-$('restartBtn').onclick=()=>{sPos=S_MIN;shownEv.clear();engulfT=-1;endFade=0;$('chat').innerHTML='';};
-$('scrub').oninput=e=>{const f=e.target.value/10000;sPos=S_MIN+f*(S_MAX-S_MIN);
+$('restartBtn').onclick=()=>{sPos=S_MIN;tPos=-5e7;shownEv.clear();engulfT=-1;endFade=0;$('chat').innerHTML='';};
+$('scrub').oninput=e=>{const f=e.target.value/10000;sPos=S_MIN+f*(S_MAX-S_MIN);tPos=sToT(sPos);
   EV.forEach((ev,i)=>{if(S(ev[0])>sPos)shownEv.delete(i)});};
 
-chat('sys','欢迎使用 CD −59° 1695 演化模拟器。点击「播放」，见证一颗恒星从星云到质子衰变的 10⁴⁰ 年旅程。');
+chat('sys','欢迎使用 CD −59° 1695 演化模拟器。时间流速随阶段变化：主序期每帧100万年，原恒星/次巨星/赫氏空隙/红巨星/氦燃烧期每帧10万年，AGB期每帧1万年，白矮星期每帧指数+1%。点击「播放」开始。');
 requestAnimationFrame(loop);
 </script>
 </body>
