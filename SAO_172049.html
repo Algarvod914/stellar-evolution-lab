@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAO 172049 恒星系统 · 演化历程动画</title>
+<style>
+  :root{
+    --bg:#050510; --panel:#0d0d1f; --panel2:#12122a; --line:#26264a;
+    --txt:#e8e8ff; --dim:#9a9ac0; --accent:#ffb347; --accent2:#7ec8ff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:radial-gradient(ellipse at 50% -20%, #141430 0%, var(--bg) 60%);
+       color:var(--txt);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  header{text-align:center;padding:26px 16px 8px}
+  header h1{font-size:clamp(20px,3.4vw,34px);letter-spacing:1px;
+    background:linear-gradient(90deg,#ffd9a0,#ff9d6c,#c89bff,#7ec8ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  header p{color:var(--dim);font-size:13px;margin-top:6px}
+  .wrap{width:min(1150px,96vw);display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .stage-card{flex:1 1 660px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  canvas{display:block}
+  #cv{width:100%;height:460px;background:#030308}
+  .controls{display:flex;align-items:center;gap:10px;padding:12px 14px;
+    background:var(--panel2);border-top:1px solid var(--line);flex-wrap:wrap}
+  button{cursor:pointer;border:1px solid var(--line);background:#1a1a38;color:var(--txt);
+    border-radius:8px;padding:7px 16px;font-size:14px;transition:.2s}
+  button:hover{background:#26265a;border-color:#4a4a8a}
+  select{background:#1a1a38;color:var(--txt);border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;font-size:13px}
+  input[type=range]{flex:1;min-width:160px;accent-color:var(--accent)}
+  .side{flex:1 1 340px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h2{font-size:13px;color:var(--accent2);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+  .kv{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-bottom:1px dashed #1e1e40}
+  .kv:last-child{border-bottom:none}
+  .kv b{color:var(--accent);font-weight:600;text-align:right;max-width:60%}
+  .bigstage{font-size:19px;font-weight:700;color:var(--accent);margin-bottom:4px}
+  .spect{font-size:12px;color:var(--dim);margin-bottom:4px}
+  .chat{height:170px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}
+  .msg{max-width:92%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.5;animation:pop .35s ease}
+  .msg.star{align-self:flex-start;background:#241d3d;border:1px solid #4a3a7a}
+  .msg.planet{align-self:flex-end;background:#0f2b3d;border:1px solid #1f5a7a}
+  .msg.sys{align-self:center;background:#3d241d;border:1px solid #7a4a1a;text-align:center}
+  .msg .who{display:block;font-size:11px;color:var(--dim);margin-bottom:3px}
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);
+    padding:0 14px 8px;background:var(--panel2)}
+  #hr{background:#070714;border-radius:10px;width:100%}
+  .hrcap{font-size:11px;color:var(--dim);margin-top:6px;text-align:center}
+  #toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);
+    background:#2a1440;border:1px solid #7a3aa0;color:#f0d8ff;padding:10px 22px;
+    border-radius:999px;font-size:14px;transition:transform .4s;z-index:9;box-shadow:0 6px 24px rgba(120,40,200,.4)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  footer{color:var(--dim);font-size:11px;padding:16px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>✦ SAO 172049 恒星系统 · 演化历程 ✦</h1>
+  <p>一颗 2.2 倍太阳质量的 A1V 星（天狼星 A 的"同乡"）——从星云到质子衰变 · 含赫罗图与行星 b 数据</p>
+</header>
+
+<div class="wrap">
+  <div class="stage-card">
+    <canvas id="cv" width="960" height="460"></canvas>
+    <div class="controls">
+      <button id="playBtn">▶ 播放</button>
+      <button id="restartBtn">⟲ 重来</button>
+      <label style="font-size:12px;color:var(--dim)">速度模式</label>
+      <select id="speedSel">
+        <option value="auto" selected>正常（分阶段变速）</option>
+        <option value="1000">每帧 1,000 年</option>
+        <option value="10000">每帧 1 万年</option>
+        <option value="100000">每帧 10 万年</option>
+        <option value="1000000">每帧 100 万年</option>
+      </select>
+      <input type="range" id="scrub" min="0" max="10000" value="0">
+      <span id="clock" style="font-size:13px;color:var(--accent);white-space:nowrap">诞生前 3000 万年</span>
+    </div>
+    <div class="ticks"><span>星云</span><span>诞生</span><span>5亿年</span><span>15亿年</span><span>红巨星</span><span>白矮星</span><span>10¹²年</span><span>10²³年</span><span>黑矮星</span><span>终结</span></div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <h2>当前状态</h2>
+      <div class="bigstage" id="dStage">星云</div>
+      <div class="spect" id="dSpec">Molecular Cloud</div>
+      <div class="kv"><span>时间</span><b id="dTime">–</b></div>
+      <div class="kv"><span>质量</span><b id="dMass">–</b></div>
+      <div class="kv"><span>半径</span><b id="dR">–</b></div>
+      <div class="kv"><span>光度</span><b id="dL">–</b></div>
+      <div class="kv"><span>表面温度</span><b id="dT">–</b></div>
+      <div class="kv"><span>行星 b 轨道</span><b id="dOrbit">–</b></div>
+      <div class="kv"><span>行星 b 表面温度</span><b id="dPT">–</b></div>
+      <div class="kv"><span>行星 b 状态</span><b id="dP">尚未形成</b></div>
+    </div>
+    <div class="card">
+      <h2>赫罗图（实时位置）</h2>
+      <canvas id="hr" width="340" height="270"></canvas>
+      <div class="hrcap">横轴：表面温度（左热右冷）· 纵轴：光度 · 白线为该星的演化轨迹</div>
+    </div>
+    <div class="card">
+      <h2>恒星日志 / 对话</h2>
+      <div class="chat" id="chat"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<footer>数据基于 Odd Squad (In simple cosmos version) Wiki「SAO 172049 时间线」· 粉丝向娱乐可视化，非严谨天文数据</footer>
+
+<script>
+/* ====== 关键帧 [t年, 半径R☉, 温度K, 光度L☉, 阶段, 光谱型, 质量M☉] ====== */
+const K = [
+ [-3.0e7,  null,  null,  null, "星云", "Molecular Cloud", null],
+ [-2.25e7, 122.63,3784, 2778, "原恒星", "M2III", 4.114],
+ [-2.0e7,  31.5,  4610, 404,  "原恒星", "K4III", 3.388],
+ [-1.75e7, 13.1,  5054, 101,  "原恒星", "K1III", 3.002],
+ [-1.5e7,  5.372, 5613, 25.8, "金牛T星", "G5IIIb (Pre-MS)", 2.73],
+ [-1.25e7, 4.41,  5881, 17.0, "金牛T星", "G1IV–G2IV (Pre-MS)", 2.61],
+ [-1.0e7,  3.717, 6144, 17.7, "林忠四郎轨迹", "F8IV–F9IV (Pre-MS)", 2.524],
+ [-7.5e6,  3.354, 6352, 16.5, "林忠四郎轨迹", "F7IV–F8IV (Pre-MS)", 2.408],
+ [-5.0e6,  3.014, 6561, 15.2, "亨耶轨迹", "F5IV–F6IV (Pre-MS)", 2.264],
+ [-3.0e6,  2.71,  6938, 15.3, "亨耶轨迹", "F3IV (Pre-MS)", 2.24],
+ [-1.0e6,  2.318, 7610, 16.2, "亨耶轨迹", "A9V (Pre-MS)", 2.214],
+ [0,       1.652, 9656, 21.4, "零龄主序 (ZAMS)", "A1V", 2.204],
+ [5.0e8,   1.788, 9532, 23.8, "主序星", "A1V", 2.204],
+ [1.0e9,   1.978, 9382, 27.3, "主序星", "A1V–A2V", 2.204],
+ [1.2e9,   2.114, 9302, 30.1, "主序星", "A2V", 2.204],
+ [1.4e9,   2.368, 9084, 34.4, "晚主序星", "A2V–A3V", 2.204],
+ [1.41e9,  2.653, 8710, 36.5, "晚主序星", "A3IV–A4IV", 2.204],
+ [1.415e9, 2.566, 8944, 38.0, "亚巨星 · 钩状阶段", "A3IV", 2.204],
+ [1.42e9,  2.436, 9303, 40.0, "亚巨星 · 钩状阶段", "A2V", 2.204],
+ [1.425e9, 2.752, 8814, 41.2, "赫氏空隙", "A3IV", 2.204],
+ [1.43e9,  3.318, 8131, 43.4, "赫氏空隙", "A7IV", 2.204],
+ [1.435e9, 4.008, 7438, 44.3, "赫氏空隙", "F0IVa", 2.204],
+ [1.44e9,  4.863, 6761, 44.5, "赫氏空隙", "F4IVa", 2.204],
+ [1.445e9, 5.915, 6104, 43.8, "赫氏空隙", "F9IIIb", 2.204],
+ [1.45e9,  7.272, 5481, 43.0, "赫氏空隙", "G7IIIb", 2.204],
+ [1.455e9, 8.406, 5410, 54.5, "红巨星支", "G7IIIb", 2.204],
+ [1.46e9,  9.624, 5331, 67.4, "红巨星支", "G8III", 2.204],
+ [1.47e9,  13.65, 5111, 114.5,"红巨星支", "K0III", 2.204],
+ [1.485e9, 21.8,  4730, 214,  "红巨星支", "K3III", 2.2],
+ [1.5e9,   41.0,  4476, 608,  "红巨星支顶端", "K5III", 2.168],
+ [1.50025e9,30.5, 4628, 384,  "氦闪！", "K4III", 2.167],
+ [1.501e9, 7.34,  5310, 38.6, "氦闪！", "G8IIIb", 2.164],
+ [1.505e9, 7.482, 5344, 41.1, "红团簇（核心氦燃烧）", "G8IIIb", 2.164],
+ [1.6e9,   11.35, 5182, 83.6, "红团簇（核心氦燃烧）", "G9III–K0III", 2.164],
+ [1.7e9,   21.6,  4828, 228.6,"红团簇（核心氦燃烧）", "K2III", 2.164],
+ [1.705e9, 24.6,  4744, 276,  "渐近巨星分支 (AGB)", "K3III", 2.162],
+ [1.72e9,  41.1,  4441, 592,  "AGB", "K5III", 2.152],
+ [1.74e9,  73.4,  3988, 1228, "AGB · 半规则变星", "M0III", 2.112],
+ [1.743e9, 127,   3707, 2744, "AGB · 半规则变星", "M3III", 1.944],
+ [1.744e9, 153.9, 3622, 3672, "AGB · 半规则变星", "M3III", 1.872],
+ [1.75e9,  378,   2978, 10128,"AGB · 米拉变星", "M7IIIe", 1.07],
+ [1.75075e9,415.2,2896, 10926,"AGB · 米拉变星 · 碳星", "C6,3e / M8III", 0.91],
+ [1.7515e9,433.36,2862, 11352,"热脉动AGB · 最大体积！", "C7,8e / M8III · 米拉变星", 0.718],
+ [1.75152e9,189.9,4310, 11212,"后AGB 坍缩中", "K4Iep (K7III)", 0.718],
+ [1.75156e9,42.1, 9081, 10881,"后AGB 坍缩中", "A0Iep (A3III)", 0.716],
+ [1.7516e9, 2.098,40182,10344,"行星状星云（核心）", "O4Iep / sdB3", 0.715],
+ [1.751601e9,null,null,2.88e7,"新星爆发！", "N", 0.714],
+ [1.752e9, 0.06991,136844,1544,"碳氧白矮星", "wdO6 / DA0.1", 0.714],
+ [2.0e9,   0.01868,113452,52.1,"白矮星冷却中", "wdO7 / DA0.3", 0.714],
+ [3.0e9,   0.01792,102844,32.4,"白矮星冷却中", "wdO7 / DA0.3–DA0.4", 0.714],
+ [5.0e9,   0.01722,85144,14.0,"白矮星冷却中", "wdO8 / DA0.6", 0.714],
+ [1.0e10,  0.0167, 68614,5.57,"白矮星冷却中", "wdO8–wdO9 / DA0.9", 0.714],
+ [1.0e11,  0.01548,34841,0.318,"白矮星冷却中", "wdB5 / DA2.4", 0.714],
+ [1.0e12,  0.01472,24310,0.068,"白矮星冷却中", "wdB7 / DA3.1", 0.714],
+ [1.0e14,  0.01364,11539,2.97e-3,"白矮星冷却中", "wdA8 / DA5.6", 0.714],
+ [1.0e15,  0.0129, 7791, 5.7e-4,"白矮星冷却中", "wdF8 / DA7.2", 0.714],
+ [1.0e18,  0.0119, 4300, 3.0e-5,"白矮星冷却中", "wdM0 / DA11.6", 0.714],
+ [1.0e21,  0.0111, 1357, 3.8e-7,"白矮星冷却中", "wdT9 / DA48", 0.714],
+ [1.0e23,  0.0105, 351,  1.5e-9,"黑矮星（不再发光）", "BD", 0.714],
+ [1.0e25,  0.01028,75,   3.0e-12,"黑矮星", "BD", 0.714],
+ [1.0e27,  0.01028,3,    7.7e-18,"黑矮星", "BD", 0.714],
+ [1.0e40,  0,     0,    0,   "质子衰变 · 终结", "—", 0],
+];
+/* 行星 b 表面温度（表格数据，°C） */
+const PT=[[0,3000],[2.75e8,832],[1.0e9,1008],[1.4e9,1250],[1.5e9,2384],
+ [1.50025e9,1966],[1.6e9,1526],[1.7e9,1938],[1.743e9,3444],[1.744e9,10000]];
+function planetTemp(t){
+  if(t<0)return null;
+  for(let i=0;i<PT.length-1;i++){
+    if(t>=PT[i][0]&&t<=PT[i+1][0]){
+      const f=(t-PT[i][0])/(PT[i+1][0]-PT[i][0]);
+      return Math.round(lerp(PT[i][1],PT[i+1][1],f));
+    }
+  }
+  return null;
+}
+/* ====== 事件对话 ====== */
+const EV = [
+ [-3.0e7,"sys","星云坍缩开始，孕育恒星 SAO 172049"],
+ [-2.25e7,"star","大家好！我在星云中诞生了！"],
+ [0,     "planet","你好 SAO 172049，我在原行星盘中形成了！"],
+ [1.0e8, "planet","好无聊……能给我讲讲 A 型星吗？"],
+ [1.0e8, "star","A 型星表面温度 7,500–10,000K，质量 1.7–2.4 倍太阳。比如天狼星 A 就是 A0V、约 2.2 倍太阳质量——和我差不多。但 A 型星寿命只有 10–25 亿年，质量越大寿命越短"],
+ [5.0e8, "planet","给我讲讲恒星演化吧"],
+ [5.0e8, "star","恒星演化涵盖恒星的一生。氢燃料耗尽后，恒星会膨胀成红巨星。太阳寿命约 120 亿年，而我这颗 A1V 星预期只有约 16 亿年"],
+ [1.0e9, "planet","你的寿命还有多长？"],
+ [1.0e9, "star","约 16 亿年，已过了 62.5%。氢耗尽后我会膨胀成红巨星——而你离我太近，恐怕活不过红巨星阶段"],
+ [1.4e9, "planet","AGB 阶段你最大能膨胀到多大？"],
+ [1.4e9, "star","约 400 倍太阳半径。可惜你离我太近，大概率撑不过去……"],
+ [1.415e9,"star","⚠ 警告：氢燃料不足！开始执行钩状阶段（Subgiant Hook）……"],
+ [1.425e9,"star","正在穿越赫氏空隙——这个阶段极短：温度骤降、光度微降，只有约 3,000 万年"],
+ [1.455e9,"star","⛔ 错误：氢燃料低于 5%，开始膨胀……"],
+ [1.5e9, "sys","到达红巨星支顶端：41 倍太阳半径、608 倍太阳光度、表面 4,203°C（K5III）"],
+ [1.50025e9,"star","💀 致命错误：执行氦闪！我的星风把行星 b 推到了 0.568 AU"],
+ [1.6e9, "planet","什么是红团簇星？"],
+ [1.6e9, "star","红团簇星是越过红巨星支顶端、执行氦闪后燃烧核心氦的「缩小版红巨星」。我的红团簇阶段将持续约 2.5 亿年"],
+ [1.705e9,"star","⚠ 警告：氦燃料耗尽，开始膨胀并损失质量……（AGB：0.8–8 倍太阳质量恒星的最后演化阶段）"],
+ [1.743e9,"star","你活不过 AGB 的，b——因为你离我太近。你愿意牺牲自己，来增加我的锂丰度吗？"],
+ [1.743e9,"planet","好的，SAO 172049，我接受牺牲……"],
+ [1.744e9,"planet","(HP −99999) 再见了，我通过被红巨星吞没的方式献祭给你"],
+ [1.744e9,"star","再见，b。吞掉你之后，我的锂丰度增加了约十倍"],
+ [1.7515e9,"sys","最大体积：433 倍太阳半径、11,352 倍太阳光度、2,589°C —— C7,8e 碳星 / 米拉变星"],
+ [1.75152e9,"star","💀 致命错误：氦燃料耗尽，开始坍缩……"],
+ [1.751601e9,"sys","✦ 恒星爆发为一颗普通新星！（光度 2,880 万倍太阳）"],
+ [1.752e9,"star","再见了大家，我现在是一颗碳氧白矮星"],
+ [1.0e10,"sys","银河系与仙女座星系合并为「Milkomeda」星系"],
+ [1.0e14,"sys","简并纪开始——宇宙中所有恒星都耗尽燃料，不再有新恒星诞生"],
+ [1.0e23,"sys","从现在起，我是一颗不再发出可见光的黑矮星"],
+ [1.0e40,"sys","再见了大家……所有质子都已衰变，SAO 172049 从宇宙中消失"],
+];
+/* ====== 对数时间轴 & 分阶段变速 ====== */
+const S = t => Math.sign(t)*Math.log10(1+Math.abs(t));
+const S_MIN = S(-3e7), S_MAX = S(1e40);
+const Ks = K.map(k=>[S(k[0]),...k]);
+const sToT = s => Math.sign(s)*(Math.pow(10,Math.abs(s))-1);
+let sPos=S_MIN, tPos=-3e7, playing=false, shownEv=new Set();
+function rateFor(stage){
+  if(/行星状|新星|后AGB/.test(stage)) return 1e4;
+  if(/AGB|渐近|热脉动/.test(stage)) return 1e4;   /* AGB：每帧1万年 */
+  if(/氦闪|红团簇/.test(stage)) return 1e5;        /* 氦燃烧：每帧10万年 */
+  if(/红巨星支/.test(stage)) return 1e5;          /* 红巨星：每帧10万年 */
+  if(/赫氏/.test(stage)) return 1e5;              /* 赫氏空隙：每帧10万年 */
+  if(/亚巨星/.test(stage)) return 1e5;            /* 次巨星：每帧10万年 */
+  if(/原恒星|金牛|林忠|亨耶/.test(stage)) return 1e5; /* 原恒星：每帧10万年 */
+  return 1e6;                                      /* 主序星 & 星云：每帧100万年 */
+}
+const WD_EXP = {auto:1,"1000":1,"10000":2,"100000":3,"1000000":4};
+
+const objK=a=>({t:a[0],R:a[1],T:a[2],L:a[3],stage:a[4],spec:a[5],mass:a[6]});
+function lerp(a,b,f){return a+(b-a)*f}
+function stateAt(s){
+  if(s<=Ks[0][0]) return objK(K[0]);
+  for(let i=0;i<Ks.length-1;i++){
+    if(s>=Ks[i][0] && s<=Ks[i+1][0]){
+      const f=(s-Ks[i][0])/(Ks[i+1][0]-Ks[i][0]);
+      const a=K[i], b=K[i+1];
+      const mix=(x,y)=> (x==null||y==null)? (f<.5?(x??y):(y??x)) : Math.exp(lerp(Math.log(x),Math.log(y),f));
+      return {t:lerp(a[0],b[0],f), R:mix(a[1],b[1]), T:mix(a[2],b[2]), L:mix(a[3],b[3]),
+              stage:f<.5?a[4]:b[4], spec:f<.5?a[5]:b[5], mass:f<.5?a[6]:b[6]};
+    }
+  }
+  return objK(K[K.length-1]);
+}
+function tempColor(T){
+  if(T==null) return [190,160,255];
+  const stops=[[300,[120,120,130]],[1400,[255,70,10]],[2800,[255,130,40]],[4500,[255,190,110]],
+    [5800,[255,240,205]],[8000,[255,255,255]],[12000,[205,225,255]],[140000,[150,180,255]]];
+  if(T<=stops[0][0]) return stops[0][1];
+  for(let i=0;i<stops.length-1;i++){
+    const [t1,c1]=stops[i],[t2,c2]=stops[i+1];
+    if(T>=t1&&T<=t2){const f=(T-t1)/(t2-t1);
+      return [Math.round(lerp(c1[0],c2[0],f)),Math.round(lerp(c1[1],c2[1],f)),Math.round(lerp(c1[2],c2[2],f))];}
+  }
+  return stops[stops.length-1][1];
+}
+/* ====== 主画布 ====== */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const W=cv.width, H=cv.height, CX=W/2, CY=H/2;
+let engulfT=-1, novaFlash=0, endFade=0, planetGone=false;
+const nebPts=Array.from({length:140},()=>({a:Math.random()*6.283,r:40+Math.random()*260,s:.2+Math.random()*.9,h:Math.random()}));
+
+function drawStars(){ctx.fillStyle="#030308";ctx.fillRect(0,0,W,H);
+  for(let i=0;i<130;i++){const x=(i*173.3)%W,y=(i*97.7)%H;
+    ctx.globalAlpha=.25+.5*Math.abs(Math.sin(i*3.1+performance.now()/900));
+    ctx.fillStyle="#cdd6ff";ctx.fillRect(x,y,1.4,1.4);}
+  ctx.globalAlpha=1;}
+function drawNebula(alpha){
+  if(alpha<=0)return;
+  const g=ctx.createRadialGradient(CX,CY,10,CX,CY,300);
+  g.addColorStop(0,`rgba(150,110,255,${.28*alpha})`);g.addColorStop(.6,`rgba(90,60,200,${.12*alpha})`);
+  g.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  nebPts.forEach(p=>{const wob=Math.sin(performance.now()/700*p.s+p.a*7)*8;
+    const x=CX+Math.cos(p.a)*(p.r+wob),y=CY+Math.sin(p.a)*(p.r+wob)*.62;
+    ctx.globalAlpha=.5*alpha*p.s;ctx.fillStyle=p.h>.5?"#b9a0ff":"#8fd0ff";
+    ctx.beginPath();ctx.arc(x,y,p.s*2.4,0,6.283);ctx.fill();});
+  ctx.globalAlpha=1;}
+function drawStar(st){
+  if(st.R==null) return;
+  if(novaFlash>0){ctx.fillStyle=`rgba(255,255,255,${novaFlash})`;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=`rgba(190,210,255,${novaFlash*.9})`;
+    ctx.beginPath();ctx.arc(CX,CY,60+400*(1-novaFlash),0,6.283);ctx.fill();
+    novaFlash=Math.max(0,novaFlash-.02);return;}
+  let Rpx=Math.min(12*Math.sqrt(st.R), H/2-14);
+  const puls=/红巨星|红团簇|AGB|氦闪|亚巨|赫氏/.test(st.stage)
+    ? 1+0.05*Math.sin(performance.now()/160) : 1;
+  if(/行星状星云/.test(st.stage)){
+    const pr=lerp(Rpx,Rpx*4,(performance.now()%3000)/3000);
+    ctx.strokeStyle="rgba(120,200,255,.35)";ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(CX,CY,pr,0,6.283);ctx.stroke();
+    const g2=ctx.createRadialGradient(CX,CY,0,CX,CY,Rpx*4);
+    g2.addColorStop(0,"rgba(0,0,0,0)");g2.addColorStop(1,"rgba(140,220,255,.12)");
+    ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);}
+  const [r,g,b]=tempColor(st.T);
+  const glow=ctx.createRadialGradient(CX,CY,0,CX,CY,Rpx*puls*2.1);
+  glow.addColorStop(0,`rgba(${r},${g},${b},.5)`);glow.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+  const body=ctx.createRadialGradient(CX-Rpx*.25,CY-Rpx*.25,Rpx*.1,CX,CY,Rpx*puls);
+  body.addColorStop(0,"rgba(255,255,255,.95)");body.addColorStop(.25,`rgb(${r},${g},${b})`);
+  body.addColorStop(1,`rgb(${Math.max(0,r-90)},${Math.max(0,g-70)},${Math.max(0,b-60)})`);
+  ctx.globalAlpha=/黑矮星|质子|终结/.test(st.stage)? .5:1;
+  ctx.fillStyle=body;ctx.beginPath();ctx.arc(CX,CY,Math.max(Rpx*puls,2.2),0,6.283);ctx.fill();
+  ctx.globalAlpha=1;}
+function drawPlanet(st){
+  const born=st.t>=0;
+  if(!born||planetGone||st.R==null) return;
+  const orbitAU = st.t>=1.50025e9 ? 0.568 : 0.45;
+  ctx.strokeStyle="rgba(126,200,255,.18)";ctx.setLineDash([3,5]);
+  ctx.beginPath();ctx.arc(CX,CY,120,0,6.283);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="rgba(126,200,255,.45)";ctx.font="10px sans-serif";ctx.textAlign="left";
+  ctx.fillText("行星 b 轨道 "+orbitAU+" AU",CX+126,CY-110);
+  const starAU=st.R/215.032;
+  let ang=performance.now()/1400, pr=120, alpha=1;
+  if(starAU>=orbitAU){
+    if(engulfT<0)engulfT=performance.now();
+    const f=Math.min(1,(performance.now()-engulfT)/2000);
+    pr=lerp(120,40,f); alpha=1-f; ang+=f*15;
+    if(f>=1){toast("☄ 行星 b 被红巨星吞噬——献祭完成，锂丰度 ×10");engulfT=-1;planetGone=true;return;}
+  }
+  const x=CX+Math.cos(ang)*pr,y=CY+Math.sin(ang)*pr*.92;
+  const pg=ctx.createRadialGradient(x-3,y-3,1,x,y,8);
+  pg.addColorStop(0,"#cfe8ff");pg.addColorStop(1,"#3a6ea8");
+  ctx.globalAlpha=alpha;ctx.fillStyle=pg;
+  ctx.beginPath();ctx.arc(x,y,6.5,0,6.283);ctx.fill();ctx.globalAlpha=1;}
+/* ====== 赫罗图 ====== */
+const hr=document.getElementById('hr'), hx=hr.getContext('2d');
+const HRW=hr.width, HRH=hr.height;
+const LTmin=3.4, LTmax=5.2, LLmin=-10, LLmax=8;
+const hxp=T=>(LTmax-Math.log10(T))/(LTmax-LTmin)*HRW;
+const hyp=L=>(LLmax-Math.log10(Math.max(L,1e-10)))/(LLmax-LLmin)*HRH;
+const MS_PTS=[[4.9,-3.2],[4.6,-1.2],[4.3,0.2],[4.0,1.5],[3.85,1.9],[3.7,0.2],[3.6,-1.0],[3.5,-2.2]];
+function drawHR(s){
+  hx.fillStyle="#070714";hx.fillRect(0,0,HRW,HRH);
+  hx.strokeStyle="#1c1c3a";hx.fillStyle="#55557a";hx.font="9px sans-serif";
+  [3000,5000,10000,20000,50000,100000].forEach(T=>{const x=hxp(T);
+    hx.beginPath();hx.moveTo(x,0);hx.lineTo(x,HRH);hx.stroke();
+    hx.textAlign="center";hx.fillText(T.toLocaleString()+"K",x,HRH-4);});
+  [1e8,1e4,1,1e-4,1e-8].forEach(L=>{const y=hyp(L);
+    hx.beginPath();hx.moveTo(0,y);hx.lineTo(HRW,y);hx.stroke();
+    hx.textAlign="left";hx.fillText("10^"+Math.round(Math.log10(L)),3,y-3);});
+  hx.strokeStyle="rgba(126,200,255,.28)";hx.lineWidth=4;hx.lineCap="round";hx.beginPath();
+  MS_PTS.forEach((p,i)=>{const x=(LTmax-p[0])/(LTmax-LTmin)*HRW,y=(LLmax-p[1])/(LLmax-LLmin)*HRH;
+    i?hx.lineTo(x,y):hx.moveTo(x,y);});
+  hx.stroke();hx.lineWidth=1;
+  hx.fillStyle="rgba(126,200,255,.4)";hx.textAlign="center";hx.fillText("主序带",HRW*.42,HRH*.62);
+  /* 完整轨迹（暗） */
+  hx.strokeStyle="rgba(255,255,255,.14)";hx.beginPath();let started=false;
+  K.forEach(k=>{if(k[1]==null||k[2]==null)return;const x=hxp(k[2]),y=hyp(k[3]);
+    started?hx.lineTo(x,y):hx.moveTo(x,y);started=true;});hx.stroke();
+  /* 已走过轨迹（亮） */
+  hx.strokeStyle="rgba(255,179,71,.85)";hx.lineWidth=2;hx.beginPath();started=false;
+  for(let i=0;i<K.length;i++){const k=K[i];if(k[1]==null||k[2]==null)continue;
+    if(Ks[i][0]>sPos)break;const x=hxp(k[2]),y=hyp(k[3]);
+    started?hx.lineTo(x,y):hx.moveTo(x,y);started=true;}
+  hx.stroke();hx.lineWidth=1;
+  /* 当前位置 */
+  const st=stateAt(s);
+  if(st.T&&st.L){const x=hxp(st.T),y=hyp(st.L);
+    const t=performance.now()/300;
+    hx.strokeStyle="rgba(255,179,71,.7)";hx.beginPath();
+    hx.arc(x,y,6+3*Math.sin(t),0,6.283);hx.stroke();
+    hx.fillStyle="#ffd9a0";hx.beginPath();hx.arc(x,y,3.6,0,6.283);hx.fill();}
+  hx.fillStyle="#8888aa";hx.font="9px sans-serif";hx.textAlign="right";
+  hx.fillText("← 高温",HRW-4,10);hx.fillText("低温 →",HRW-4,HRH-14);
+}
+/* ====== UI ====== */
+const $=id=>document.getElementById(id);
+function fmtT(t){
+  const pre=t<0,a=Math.abs(t);let s;
+  if(a>=1e40)s="10⁴⁰ 年";
+  else if(a>=1e12)s=(a/1e12).toLocaleString()+" 万亿年";
+  else if(a>=1e8)s=(a/1e8).toFixed(2)+" 亿年";
+  else if(a>=1e4)s=Math.round(a/1e4)+" 万年";
+  else s=Math.round(a).toLocaleString()+" 年";
+  return pre?"诞生前 "+s:s;
+}
+function toast(txt){const el=$('toast');el.textContent=txt;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
+function chat(who,txt){
+  const div=document.createElement('div');div.className="msg "+who;
+  const name=who==='star'?'★ SAO 172049':who==='planet'?'● SAO 172049 b':'◈ 系统事件';
+  div.innerHTML=`<span class="who">${name}</span>${txt}`;
+  const c=$('chat');c.appendChild(div);c.scrollTop=c.scrollHeight;
+  while(c.children.length>30)c.removeChild(c.firstChild);}
+function updatePanel(st){
+  $('clock').textContent=fmtT(st.t);
+  $('dStage').textContent=st.stage;
+  $('dSpec').textContent=st.spec||'—';
+  $('dTime').textContent=fmtT(st.t);
+  $('dMass').textContent=st.mass? st.mass.toFixed(2)+" M☉":"—";
+  $('dR').textContent=st.R? (st.R>=1? st.R.toFixed(2)+" R☉":(st.R*100).toFixed(2)+"% R☉"):"—";
+  $('dL').textContent=st.L==null?"—":(st.L>=10? st.L.toLocaleString()+" L☉":st.L.toExponential(2)+" L☉");
+  $('dT').textContent=st.T? Math.round(st.T).toLocaleString()+" K ("+Math.round(st.T-273)+"°C)":"—";
+  const pt=planetTemp(st.t);
+  $('dOrbit').textContent=st.t<0?"—":st.t>=1.50025e9?"0.568 AU（恒星风推移后）":"0.45 AU";
+  $('dPT').textContent=pt==null?"—":pt.toLocaleString()+" °C";
+  $('dP').textContent=st.t<0?"尚未形成":(planetGone||st.t>=1.7445e9)?"已被吞没 · 献祭（锂丰度 ×10）☠":"存活";}
+function checkEvents(prev,cur){
+  EV.forEach((e,i)=>{const s=S(e[0]);
+    if(prev<s&&cur>=s&&!shownEv.has(i)){shownEv.add(i);chat(e[1],e[2]);toast(e[2].slice(0,42));}});
+  if(prev<S(1.50025e9)&&cur>=S(1.50025e9))toast("💨 氦闪！恒星风把行星 b 推到 0.568 AU");
+  if(prev<S(1.751601e9)&&cur>=S(1.751601e9))novaFlash=1;
+  if(prev<S(1e40)&&cur>=S(1e40))endFade=1;
+  if(cur<prev)EV.forEach((e,i)=>{if(S(e[0])>cur)shownEv.delete(i)});}
+let last=performance.now();
+function loop(now){
+  const dt=(now-last)/1000;last=now;
+  if(playing){
+    const frames=Math.min(dt*60,3);
+    const mode=$('speedSel').value;
+    const st0=stateAt(sPos), prev=sPos;
+    if(/白矮星|黑矮星|质子|终结/.test(st0.stage)){
+      tPos=tPos*Math.pow(1.01, frames*WD_EXP[mode]);   /* 白矮星：从每帧1000年起，每帧指数+1% */
+    }else{
+      const rate = mode==='auto' ? rateFor(st0.stage) : parseFloat(mode);
+      tPos += rate*frames;
+    }
+    if(tPos>=1e40){tPos=1e40;playing=false;$('playBtn').textContent='▶ 播放';}
+    sPos=S(tPos);
+    checkEvents(prev,sPos);
+    $('scrub').value=((sPos-S_MIN)/(S_MAX-S_MIN))*10000;}
+  drawStars();
+  const st=stateAt(sPos);
+  const nebA=sPos<S(-1.5e7)? Math.min(1,(S(-1.5e7)-sPos)/(S(-1.5e7)-S(-2.2e7)))+.15 :0;
+  drawNebula(Math.min(nebA,1));
+  if(sPos<S(1e40)){drawPlanet(st);drawStar(st);}
+  drawHR(sPos);
+  if(endFade>0){ctx.fillStyle=`rgba(3,3,8,${endFade})`;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="rgba(230,220,255,.9)";ctx.font="20px sans-serif";ctx.textAlign="center";
+    ctx.fillText("所有质子均已衰变 —— SAO 172049 消失在宇宙中",CX,CY);
+    endFade=Math.min(1,endFade+.004);}
+  updatePanel(st);
+  requestAnimationFrame(loop);}
+$('playBtn').onclick=()=>{if(tPos>=1e40-.5){sPos=S_MIN;tPos=-3e7;shownEv.clear();}
+  playing=!playing;$('playBtn').textContent=playing?'⏸ 暂停':'▶ 播放';};
+$('restartBtn').onclick=()=>{sPos=S_MIN;tPos=-3e7;shownEv.clear();engulfT=-1;endFade=0;planetGone=false;$('chat').innerHTML='';};
+$('scrub').oninput=e=>{const f=e.target.value/10000;sPos=S_MIN+f*(S_MAX-S_MIN);tPos=sToT(sPos);
+  EV.forEach((ev,i)=>{if(S(ev[0])>sPos)shownEv.delete(i)});
+  if(sPos<S(1.743e9)){planetGone=false;engulfT=-1;}};
+chat('sys','SAO 172049 演化模拟器就绪。正常模式：主序期每帧100万年，原恒星/次巨星/赫氏空隙/红巨星/氦燃烧期每帧10万年，AGB期每帧1万年，白矮星期从每帧1000年起指数+1%/帧。另有4档固定速度可选。');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
