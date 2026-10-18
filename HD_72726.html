@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HD 72726 · Evolution Animation</title>
+<style>
+  :root{--bg:#050510;--panel:#0d0d1f;--panel2:#12122a;--line:#26264a;
+    --txt:#e8e8ff;--dim:#9a9ac0;--accent:#ffb347;--accent2:#7ec8ff;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:radial-gradient(ellipse at 50% -20%,#141430 0%,var(--bg) 60%);
+    color:var(--txt);font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center}
+  header{text-align:center;padding:26px 16px 8px}
+  header h1{font-size:clamp(20px,3.4vw,34px);letter-spacing:1px;
+    background:linear-gradient(90deg,#ffd9a0,#ff9d6c,#c89bff,#7ec8ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  header p{color:var(--dim);font-size:13px;margin-top:6px;max-width:760px}
+  .wrap{width:min(1180px,96vw);display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+  .stage-card{flex:1 1 680px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  canvas{display:block}
+  #cv{width:100%;height:460px;background:#030308}
+  .controls{display:flex;align-items:center;gap:10px;padding:12px 14px;
+    background:var(--panel2);border-top:1px solid var(--line);flex-wrap:wrap}
+  button{cursor:pointer;border:1px solid var(--line);background:#1a1a38;color:var(--txt);
+    border-radius:8px;padding:7px 16px;font-size:14px;transition:.2s}
+  button:hover{background:#26265a;border-color:#4a4a8a}
+  select{background:#1a1a38;color:var(--txt);border:1px solid var(--line);
+    border-radius:8px;padding:6px 8px;font-size:13px}
+  input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+  .side{flex:1 1 340px;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h2{font-size:13px;color:var(--accent2);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+  .kv{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;border-bottom:1px dashed #1e1e40}
+  .kv:last-child{border-bottom:none}
+  .kv b{color:var(--accent);font-weight:600;text-align:right;max-width:60%}
+  .kv b.danger{color:#ff5c5c}
+  .bigstage{font-size:18px;font-weight:700;color:var(--accent);margin-bottom:4px}
+  .spect{font-size:12px;color:var(--dim);margin-bottom:4px}
+  .crow{display:flex;align-items:center;gap:8px;font-size:11.5px;margin:3px 0}
+  .crow .nm{width:56px;color:var(--dim)}
+  .cbar{flex:1;height:9px;background:#181834;border-radius:5px;overflow:hidden}
+  .cbar i{display:block;height:100%;border-radius:5px;transition:width .2s}
+  .crow .pc{width:52px;text-align:right;color:var(--txt)}
+  .chat{height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}
+  .msg{max-width:92%;padding:8px 12px;border-radius:12px;font-size:12.5px;line-height:1.5;animation:pop .35s ease}
+  .msg.star{align-self:flex-start;background:#241d3d;border:1px solid #4a3a7a}
+  .msg.sys{align-self:center;background:#3d241d;border:1px solid #7a4a1a;text-align:center}
+  .msg .who{display:block;font-size:11px;color:var(--dim);margin-bottom:3px}
+  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .ticks{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);
+    padding:0 14px 8px;background:var(--panel2)}
+  #hr{background:#070714;border-radius:10px;width:100%}
+  .hrcap{font-size:11px;color:var(--dim);margin-top:6px;text-align:center}
+  #toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);
+    background:#2a1440;border:1px solid #7a3aa0;color:#f0d8ff;padding:10px 22px;
+    border-radius:999px;font-size:14px;transition:transform .4s;z-index:9;box-shadow:0 6px 24px rgba(120,40,200,.4)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  footer{color:var(--dim);font-size:11px;padding:16px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="hTitle">✦ HD 72726 · 演化历程 ✦</h1>
+  <p id="hSub"></p>
+</header>
+
+<div class="wrap">
+  <div class="stage-card">
+    <canvas id="cv" width="960" height="460"></canvas>
+    <div class="controls">
+      <button id="playBtn" data-i18n="play">▶ 播放</button>
+      <button id="restartBtn" data-i18n="restart">⟲ 重来</button>
+      <label style="font-size:12px;color:var(--dim)" data-i18n="speed">速度模式</label>
+      <select id="speedSel">
+        <option value="auto" data-i18n="modeAuto">正常（分阶段变速）</option>
+        <option value="1" data-i18n="modeY1">每帧 1 年</option>
+        <option value="10" data-i18n="modeY10">每帧 10 年</option>
+        <option value="100" data-i18n="modeY100">每帧 100 年</option>
+        <option value="1000" data-i18n="modeY1k">每帧 1,000 年</option>
+        <option value="10000" data-i18n="modeY10k">每帧 1 万年</option>
+      </select>
+      <label style="font-size:12px;color:var(--dim)" data-i18n="lang">语言</label>
+      <select id="langSel">
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+      </select>
+      <input type="range" id="scrub" min="0" max="10000" value="0">
+      <span id="clock" style="font-size:13px;color:var(--accent);white-space:nowrap">0</span>
+    </div>
+    <div class="ticks">
+      <span data-i18n="tk1">诞生</span><span data-i18n="tk2">500万年</span><span data-i18n="tk3">1000万年</span>
+      <span data-i18n="tk4">1500万年</span><span data-i18n="tk5">红超巨星</span><span data-i18n="tk6">蓝回绕</span>
+      <span data-i18n="tk7">超新星</span><span data-i18n="tk8">中子星</span>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <h2 data-i18n="stStatus">当前状态</h2>
+      <div class="bigstage" id="dStage">–</div>
+      <div class="spect" id="dSpec">–</div>
+      <div class="kv"><span data-i18n="lbTime">时间</span><b id="dTime">–</b></div>
+      <div class="kv"><span data-i18n="lbMass">质量</span><b id="dMass">–</b></div>
+      <div class="kv"><span data-i18n="lbRadius">半径</span><b id="dR">–</b></div>
+      <div class="kv"><span data-i18n="lbLum">光度</span><b id="dL">–</b></div>
+      <div class="kv"><span data-i18n="lbSurf">表面温度</span><b id="dT">–</b></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="stCore">恒星核心（MESA 模型）</h2>
+      <div class="kv"><span data-i18n="lbCoreT">核心温度</span><b id="dCT">–</b></div>
+      <div class="kv"><span data-i18n="lbCoreM">核心（铁核）质量</span><b id="dCM">–</b></div>
+      <div style="font-size:11px;color:var(--dim);margin:8px 0 4px" data-i18n="lbComp">核心成分（质量分数）</div>
+      <div id="comp"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="stHR">赫罗图（实时位置）</h2>
+      <canvas id="hr" width="340" height="270"></canvas>
+      <div class="hrcap" data-i18n="hrCap">横轴：表面温度（左热右冷）· 纵轴：光度 · 蓝线=主序带参考 · 橙线=演化轨迹</div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="stChat">恒星日志</h2>
+      <div class="chat" id="chat"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<footer>HD 72726 timeline · Odd Squad (In simple cosmos version) Wiki · fan-made visualization, not rigorous astrophysics</footer>
+
+<script>
+/* ============ i18n ============ */
+const I18N={
+zh:{title:"✦ HD 72726 · 演化历程 ✦",
+ sub:"13 倍太阳质量的 B0V 蓝巨星——从接管太阳系到 II 型超新星与中子星 · 核心数据仿 MESA 恒星演化模型",
+ play:"▶ 播放",pause:"⏸ 暂停",restart:"⟲ 重来",speed:"速度模式",lang:"语言",
+ stStatus:"当前状态",stCore:"恒星核心（MESA 模型）",stHR:"赫罗图（实时位置）",stChat:"恒星日志 / 对话",
+ lbTime:"时间",lbMass:"质量",lbRadius:"半径",lbLum:"光度",lbSurf:"表面温度",
+ lbCoreT:"核心温度",lbCoreM:"核心（铁核）质量",lbComp:"核心成分（质量分数）",
+ fake:"（假光球）",hrCap:"横轴：表面温度（左热右冷）· 纵轴：光度 · 蓝线=主序带参考 · 橙线=演化轨迹",
+ modeAuto:"正常（分阶段变速）",modeY1:"每帧 1 年",modeY10:"每帧 10 年",modeY100:"每帧 100 年",
+ modeY1k:"每帧 1,000 年",modeY10k:"每帧 1 万年",
+ tk1:"诞生",tk2:"500万年",tk3:"1000万年",tk4:"1500万年",tk5:"红超巨星",tk6:"蓝回绕",tk7:"超新星",tk8:"中子星",
+ elH:"氢 H",elHe:"氦 He",elC:"碳 C",elO:"氧 O",elNe:"氖 Ne",elMg:"镁 Mg",elSi:"硅 Si",elFe:"铁 Fe",elN:"中子 n",
+ endMsg:"模拟结束：HD 72726 已坍缩为中子星（脉冲星）",
+ welcome:"HD 72726 模拟器就绪。正常模式：主序 1万年/帧；次巨星/赫氏空隙/红巨星/氦燃烧 1,000年/帧；AGB 1万年/帧；碳燃烧 100年/帧；氖/氧燃烧 7天/帧；镁燃烧 1天/帧；硅燃烧→铁核坍缩 1天/秒。5 档固定速度适用于氢/氦/碳燃烧阶段。终点：中子星（20,001,000 年）。"},
+en:{title:"✦ HD 72726 · Evolution ✦",
+ sub:"A 13-solar-mass B0V star — from Solar-System takeover to Type II supernova & neutron star · Core data in MESA style",
+ play:"▶ Play",pause:"⏸ Pause",restart:"⟲ Restart",speed:"Speed mode",lang:"Language",
+ stStatus:"Current Status",stCore:"Stellar Core (MESA-style)",stHR:"H-R Diagram (live)",stChat:"Star Log",
+ lbTime:"Time",lbMass:"Mass",lbRadius:"Radius",lbLum:"Luminosity",lbSurf:"Surface temp.",
+ lbCoreT:"Core temperature",lbCoreM:"Core (iron core) mass",lbComp:"Core composition (mass fraction)",
+ fake:"(fake photosphere)",hrCap:"X: surface temperature (hot→left) · Y: luminosity · blue=main-sequence band · orange=evolution track",
+ modeAuto:"Normal (staged speeds)",modeY1:"1 yr/frame",modeY10:"10 yr/frame",modeY100:"100 yr/frame",
+ modeY1k:"1,000 yr/frame",modeY10k:"10,000 yr/frame",
+ tk1:"Birth",tk2:"5M yr",tk3:"10M yr",tk4:"15M yr",tk5:"Red SG",tk6:"Blue loop",tk7:"SN",tk8:"Neutron star",
+ elH:"Hydrogen H",elHe:"Helium He",elC:"Carbon C",elO:"Oxygen O",elNe:"Neon Ne",elMg:"Magnesium Mg",elSi:"Silicon Si",elFe:"Iron Fe",elN:"Neutrons n",
+ endMsg:"Simulation complete: HD 72726 has collapsed into a neutron star (pulsar)",
+ welcome:"HD 72726 simulator ready. Normal mode: main sequence 10,000 yr/frame; subgiant/Hertzsprung gap/red giant/helium burning 1,000 yr/frame; AGB 10,000 yr/frame; carbon burning 100 yr/frame; neon/oxygen burning 7 days/frame; magnesium 1 day/frame; silicon burning→iron collapse 1 day/second. 5 fixed speeds apply to H/He/C burning. Endpoint: neutron star (year 20,001,000)."},
+fr:{title:"✦ HD 72726 · Évolution ✦",
+ sub:"Une étoile B0V de 13 masses solaires — de la prise de contrôle du Système solaire à la supernova de type II et l'étoile à neutrons · Cœur style MESA",
+ play:"▶ Lecture",pause:"⏸ Pause",restart:"⟲ Recommencer",speed:"Mode vitesse",lang:"Langue",
+ stStatus:"État actuel",stCore:"Cœur stellaire (style MESA)",stHR:"Diagramme H-R (en direct)",stChat:"Journal stellaire",
+ lbTime:"Temps",lbMass:"Masse",lbRadius:"Rayon",lbLum:"Luminosité",lbSurf:"Temp. de surface",
+ lbCoreT:"Température du cœur",lbCoreM:"Masse du cœur (fer)",lbComp:"Composition du cœur (fraction massique)",
+ fake:"(fausse photosphère)",hrCap:"X : température de surface (chaud→gauche) · Y : luminosité · bleu=séquence principale · orange=trajectoire",
+ modeAuto:"Normal (vitesses par stade)",modeY1:"1 an/image",modeY10:"10 ans/image",modeY100:"100 ans/image",
+ modeY1k:"1 000 ans/image",modeY10k:"10 000 ans/image",
+ tk1:"Naissance",tk2:"5M ans",tk3:"10M ans",tk4:"15M ans",tk5:"Supergéante rouge",tk6:"Boucle bleue",tk7:"SN",tk8:"Étoile à neutrons",
+ elH:"Hydrogène H",elHe:"Hélium He",elC:"Carbone C",elO:"Oxygène O",elNe:"Néon Ne",elMg:"Magnésium Mg",elSi:"Silicium Si",elFe:"Fer Fe",elN:"Neutrons n",
+ endMsg:"Simulation terminée : HD 72726 s'est effondrée en étoile à neutrons (pulsar)",
+ welcome:"Simulateur HD 72726 prêt. Mode normal : séquence principale 10 000 ans/image ; sous-géante/trou de Hertzsprung/géante rouge/combustion de l'hélium 1 000 ans/image ; AGB 10 000 ans/image ; carbone 100 ans/image ; néon/oxygène 7 jours/image ; magnésium 1 jour/image ; silicium→effondrement du fer 1 jour/seconde. 5 vitesses fixes pour H/He/C. Fin : étoile à neutrons (an 20 001 000)."}
+};
+let lang='zh';
+const T=k=>I18N[lang][k];
+
+/* ============ 阶段名（三语） ============ */
+const ST={
+ zams:{zh:"零龄主序 (ZAMS)",en:"Zero-Age Main Sequence",fr:"Séquence principale (ZAMS)"},
+ ms:{zh:"主序星",en:"Main Sequence",fr:"Séquence principale"},
+ lms:{zh:"晚主序星",en:"Late Main Sequence",fr:"Séquence principale tardive"},
+ hook:{zh:"次巨星 · 钩状阶段",en:"Subgiant (Hook stage)",fr:"Sous-géante (stade crochet)"},
+ hg:{zh:"赫氏空隙 · 蓝巨星",en:"Hertzsprung Gap · Blue Giant",fr:"Trou de Hertzsprung · Géante bleue"},
+ hg_bb:{zh:"赫氏空隙 · 蓝亮巨星",en:"Blue Bright Giant",fr:"Géante bleue lumineuse"},
+ hg_bsg:{zh:"赫氏空隙 · 蓝白超巨星",en:"Blue-White Supergiant",fr:"Supergéante bleu-blanc"},
+ hg_wsg:{zh:"赫氏空隙 · 白超巨星",en:"White Supergiant",fr:"Supergéante blanche"},
+ hg_ysg:{zh:"赫氏空隙 · 黄超巨星（造父变星）",en:"Yellow Supergiant (Cepheid)",fr:"Supergéante jaune (Céphéide)"},
+ osg:{zh:"橙超巨星（造父变星）",en:"Orange Supergiant (Cepheid)",fr:"Supergéante orange (Céphéide)"},
+ rsg:{zh:"红超巨星",en:"Red Supergiant",fr:"Supergéante rouge"},
+ blueloop:{zh:"蓝回绕阶段",en:"Blue Loop",fr:"Boucle bleue"},
+ blueloop2:{zh:"蓝回绕 · 蓝白超巨星",en:"Blue Loop · Blue-White Supergiant",fr:"Boucle bleue · Supergéante bleu-blanc"},
+ he_burn:{zh:"核心氦燃烧",en:"Core Helium Burning",fr:"Combustion de l'hélium (cœur)"},
+ eagb:{zh:"早 AGB",en:"Early AGB",fr:"AGB précoce"},
+ agb:{zh:"渐近巨星分支 (AGB)",en:"Asymptotic Giant Branch",fr:"Branche asymptote des géantes"},
+ sagb:{zh:"超 AGB",en:"Super-AGB",fr:"Super-AGB"},
+ s_star:{zh:"S 型红超巨星 · 米拉变星",en:"S-type Red Supergiant · Mira",fr:"Supergéante rouge de type S · Mira"},
+ c_burn:{zh:"碳燃烧",en:"Carbon Burning",fr:"Combustion du carbone"},
+ ne_burn:{zh:"氖燃烧",en:"Neon Burning",fr:"Combustion du néon"},
+ o_burn:{zh:"氧燃烧",en:"Oxygen Burning",fr:"Combustion de l'oxygène"},
+ mg_burn:{zh:"镁燃烧",en:"Magnesium Burning",fr:"Combustion du magnésium"},
+ si_burn:{zh:"硅燃烧",en:"Silicon Burning",fr:"Combustion du silicium"},
+ fe:{zh:"铁核坍缩前夕",en:"Iron Core Collapse Imminent",fr:"Effondrement du cœur de fer imminent"},
+ sn:{zh:"II 型超新星爆发",en:"Type II Supernova",fr:"Supernova de type II"},
+ ns:{zh:"中子星 · 脉冲星",en:"Neutron Star · Pulsar",fr:"Étoile à neutrons · Pulsar"}
+};
+const stName=k=>ST[k]?ST[k][lang]:k;
+
+/* ============ 关键帧 [t年, R☉, TK, L☉, stageKey, spec, M☉] ============ */
+const K=[
+ [0,       4.778, 28552, 13669, "zams", "B0V", 13.04],
+ [5.0e6,   5.372, 28154, 16336, "ms", "B0V", 13.006],
+ [1.0e7,   6.066, 27374, 18615, "ms", "B0V", 12.958],
+ [1.55e7,  6.942, 26242, 20590, "lms", "B1V", 12.895],
+ [1.7e7,   7.304, 25804, 21309, "lms", "B0V–B1V", 12.873],
+ [1.8325e7,8.406, 24528, 23044, "hook", "B2IV", 12.854],
+ [1.835e7, 8.077, 25110, 23368, "hook", "B2IV", 12.854],
+ [1.836e7, 11.103,21434, 23442, "hg", "B3III", 12.854],
+ [1.838e7, 21.477,15441, 23624, "hg_bb", "B7IIb", 12.854],
+ [1.841e7, 46.16, 10579, 24044, "hg_bsg", "B9Ib · α Cyg 变星", 12.854],
+ [1.845e7, 85.6,  7813,  24614, "hg_wsg", "A9Ib · α Cyg 变星", 12.852],
+ [1.848e7, 149.3, 5941,  25004, "hg_ysg", "G0Ib · 造父变星", 12.850],
+ [1.85e7,  211,   5010,  25270, "osg", "K1Ib · 造父变星", 12.850],
+ [1.855e7, 270.7, 4510,  27318, "rsg", "K5Ib", 12.845],
+ [1.8575e7,290.9, 4388,  28272, "rsg", "K6Ib", 12.842],
+ [1.865e7, 391.6, 3982,  34736, "rsg", "M0Ib", 12.832],
+ [1.875e7, 511.3, 3670,  42728, "rsg", "M3Ib", 12.778],
+ [1.8775e7,503.3, 3724,  43884, "rsg", "M2Ib", 12.754],
+ [1.88e7,  433,   3970,  41956, "rsg", "M0Ib", 12.728],
+ [1.8825e7,351.0, 4366,  40338, "blueloop", "K6Ib", 12.700],
+ [1.8875e7,212.0, 5528,  37824, "blueloop", "G6Ib · 造父变星", 12.642],
+ [1.89e7,  154.2, 6414,  36255, "blueloop", "F7Ib · 造父变星", 12.610],
+ [1.895e7, 80.1,  8744,  33752, "blueloop", "A3Ib–A4Ib · α Cyg 变星", 12.544],
+ [1.9e7,   46.3,  11286, 31288, "blueloop2", "B8Ib · α Cyg 变星", 12.472],
+ [1.9025e7,43.3,  11710, 31736, "he_burn", "B8Ib · α Cyg 变星", 12.440],
+ [1.925e7, 53.3,  11122, 39228, "he_burn", "B8Ib · α Cyg 变星", 12.118],
+ [1.9425e7,127.3, 7452,  45044, "eagb", "F0Ib", 11.838],
+ [1.95e7,  177.0, 6379,  46710, "eagb", "F7Iab–Ib · 造父变星", 11.748],
+ [1.9575e7,290.4, 5027,  48510, "eagb", "K1Iab–Ib · 造父变星", 11.556],
+ [1.9625e7,379.9, 4419,  49593, "agb", "K6Iab–Ib · SRd", 11.460],
+ [1.9675e7,475.8, 3984,  51388, "agb", "M0Iab–Ib · SRc", 11.360],
+ [1.99e7,  721.8, 3470,  68051, "sagb", "M5Iab · SRc", 10.870],
+ [1.991e7, 759.8, 3410,  70328, "sagb", "M5Iab · SRc", 10.788],
+ [1.997e7, 1122.8,2937,  84504, "s_star", "S7,4e / M8Iab · 米拉变星", 9.844],
+ [1.998e7, 1196.7,2858,  86088, "s_star", "S7,7e / M8Iab · 米拉变星", 9.510],
+ [1.999e7, 1271.9,2788,  88061, "s_star", "S8,6e / M9Iab · 米拉变星", 9.128],
+ [1.99925e7,1185.1,2914, 91228, "c_burn", "M7Iab–M8Iab · 米拉变星", 9.044],
+ [1.9995e7,1094.9,3058, 94452, "c_burn", "M7Iab · 米拉变星", 8.910],
+ [1.99975e7,1030.9,3173,97048, "c_burn", "M6Iab · SRc", 8.752],
+ [2.0e7,   1013.0,3228, 100388,"c_burn", "M6Iab · SRc", 8.574],
+ [2.0000005e7,1016.4,3224,100546,"ne_burn", "M6Iab · SRc", 8.574],
+ [2.0000010e7,1021.1,3218,100728,"ne_burn", "M6Iab · SRc", 8.574],
+ [2.00000125e7,1024.7,3214,100944,"o_burn", "M6Iab · SRc", 8.574],
+ [2.00000155e7,1029.4,3209,101228,"mg_burn","M6Iab · SRc", 8.574],
+ [2.0000016e7,1030.4,3208,101304,"si_burn","M6Iab · SRc", 8.574],
+ [2.000001604e7,1030.4,3208,101304,"fe",  "M6Iab · SRc", 8.574],
+ [2.0000017e7,15390, 14597,9.688e9,"sn", "SN II", 1.914],
+ [2.0001e7, 0.024, 7.5e6, 409, "ns", "Q-Pu · 脉冲星", 1.822],
+];
+/* ============ 核心关键帧 [t, Tcore K, Mcore M☉, 成分] (MESA 风格近似) ============ */
+const CK=[
+ [0,       2.6e7, 9.50, {H:.70,He:.28,C:.003,O:.008,Ne:.002,Mg:.001,Si:.0006,Fe:.0014}],
+ [9.0e6,   3.1e7, 7.80, {H:.42,He:.53,C:.008,O:.025,Ne:.004,Mg:.002,Si:.001,Fe:.002}],
+ [1.7e7,   4.5e7, 5.20, {H:.12,He:.83,C:.015,O:.03,Ne:.005,Mg:.002,Si:.001,Fe:.002}],
+ [1.8325e7,8.5e7, 3.90, {H:.02,He:.90,C:.02,O:.05,Ne:.005,Mg:.002,Si:.001,Fe:.003}],
+ [1.835e7, 1.6e8, 3.65, {H:0,  He:.96,C:.015,O:.02,Ne:.003,Mg:.001,Si:.0006,Fe:.0014}],
+ [1.9e7,   1.9e8, 3.45, {H:0,  He:.88,C:.07,O:.04,Ne:.005,Mg:.002,Si:.001,Fe:.002}],
+ [1.9425e7,2.2e8, 3.35, {H:0,  He:.10,C:.55,O:.32,Ne:.015,Mg:.005,Si:.002,Fe:.003}],
+ [1.99e7,  5.5e8, 2.60, {H:0,  He:0,  C:.45,O:.28,Ne:.14,Mg:.08,Si:.04,Fe:.01}],
+ [1.99925e7,7.6e8,2.00, {H:0,  He:0,  C:.40,O:.28,Ne:.15,Mg:.10,Si:.05,Fe:.02}],
+ [2.0000005e7,1.3e9,1.78,{H:0, He:0, C:.03,O:.24,Ne:.28,Mg:.20,Si:.18,Fe:.05}],
+ [2.00000125e7,1.9e9,1.63,{H:0,He:0,C:0,O:.14,Ne:.16,Mg:.25,Si:.30,Fe:.12}],
+ [2.00000155e7,2.4e9,1.55,{H:0,He:0,C:0,O:.02,Ne:.08,Mg:.20,Si:.42,Fe:.25}],
+ [2.0000016e7,2.9e9, 1.49,{H:0,He:0,C:0,O:0,Ne:.02,Mg:.08,Si:.50,Fe:.38}],
+ [2.000001604e7,3.3e9,1.44,{H:0,He:0,C:0,O:0,Ne:0,Mg:.02,Si:.06,Fe:.90}],
+ [2.0000017e7,3.3e9,1.44, {N:.55,Si:.15,Fe:.28,Mg:.02}],
+ [2.0001e7, 7.5e6, 1.822,{N:.97,Fe:.03}],
+];
+/* ============ 事件 [t, who, {zh,en,fr}] ============ */
+const EV=[
+ [0,"sys",{zh:"HD 72726 在星际云中形成（B0V，13.04 M☉）。太阳翘班去度假，它从 6,400 光年外赶来接管太阳系——地球海洋瞬间沸腾成岩浆",
+   en:"HD 72726 forms (B0V, 13.04 M☉). The Sun goes on vacation; HD 72726 arrives from 6,400 ly to rule the Solar System — Earth's oceans flash-boil into a lava world",
+   fr:"HD 72726 se forme (B0V, 13,04 M☉). Le Soleil part en vacances ; HD 72726 arrive de 6 400 al gouverner le Système solaire — les océans terrestres bouillonnent en monde de lave"}],
+ [5.0e6,"sys",{zh:"🎮 第 1 次召唤：太阳系计算器把 10 颗行星全部召唤为卫星。冥王星表面 1,009°C，第 1 次岩浆浴",
+   en:"🎮 Summon #1: the Solar System Calculator calls all 10 planets as moons. Pluto at 1,009°C takes its 1st lava bath",
+   fr:"🎮 Invocation n°1 : la Calculatrice invoque les 10 planètes. Pluton à 1 009 °C prend son 1ᵉʳ bain de lave"}],
+ [1.0e7,"sys",{zh:"🎮 第 2 次召唤：海王星吐槽计算器上次高估了冥王星的温度——这次轮到它自己超过 1,000°C",
+   en:"🎮 Summon #2: Neptune complains the Calculator overestimated Pluto's temperature last time — now Neptune itself exceeds 1,000°C",
+   fr:"🎮 Invocation n°2 : Neptune se plaint que la Calculatrice avait surestimé Pluton — elle dépasse désormais 1 000 °C"}],
+ [1.5e7,"sys",{zh:"🎮 第 3 次召唤：土星 2,008°C，冥王星第 3 次被熔成岩浆",
+   en:"🎮 Summon #3: Saturn at 2,008°C; Pluto melts for the 3rd time",
+   fr:"🎮 Invocation n°3 : Saturne à 2 008 °C ; Pluton fond pour la 3ᵉ fois"}],
+ [1.7e7,"sys",{zh:"🏗 未知高级文明仅用时 1,000 年，在 HD 72726 外建成直径 4 亿公里的戴森球",
+   en:"🏗 An unknown civilization builds a Dyson sphere (400M km across) around HD 72726 in only 1,000 years",
+   fr:"🏗 Une civilisation inconnue construit une sphère de Dyson de 400 M de km en seulement 1 000 ans"}],
+ [1.8325e7,"star",{zh:"⚠ 警告：氢燃料不足！开始执行钩状阶段……",en:"⚠ WARNING: Low hydrogen fuel! Performing hook stage...",fr:"⚠ ALERTE : hydrogène faible ! Début du stade crochet…"}],
+ [1.835e7,"sys",{zh:"🎮 第 4 次召唤：地球第 4 次熔成岩浆（7,072°C），木星升至 3,112°C",
+   en:"🎮 Summon #4: Earth melts for the 4th time (7,072°C); Jupiter reaches 3,112°C",
+   fr:"🎮 Invocation n°4 : la Terre fond pour la 4ᵉ fois (7 072 °C) ; Jupiter atteint 3 112 °C"}],
+ [1.836e7,"star",{zh:"正在穿越赫氏空隙——仅持续约 15 万年：温度骤降，光度微升",
+   en:"Crossing the Hertzsprung Gap — only ~150,000 years: temperature plunges while luminosity creeps up",
+   fr:"Traversée du trou de Hertzsprung — ~150 000 ans : la température chute, la luminosité grimpe"}],
+ [1.84e7,"sys",{zh:"🎮 第 5 次召唤：蓝白超巨星时代，火星第 5 次被熔成岩浆（6,010°C）",
+   en:"🎮 Summon #5: as a blue-white supergiant, Mars melts for the 5th time (6,010°C)",
+   fr:"🎮 Invocation n°5 : supergéante bleu-blanc, Mars fond pour la 5ᵉ fois (6 010 °C)"}],
+ [1.85e7,"sys",{zh:"🎮 第 6 次召唤：⛔ 水星、金星、地球已被吞没！只剩 7 颗行星（恒星直径 211 R☉）",
+   en:"🎮 Summon #6: ⛔ Mercury, Venus & Earth engulfed! Only 7 planets remain (star at 211 R☉)",
+   fr:"🎮 Invocation n°6 : ⛔ Mercure, Vénus et la Terre englouties ! Plus que 7 planètes (211 R☉)"}],
+ [1.875e7,"sys",{zh:"🎮 第 7 次召唤：⛔ 火星也没了（511 R☉）！只剩 6 颗；木星吐槽内太阳系全灭",
+   en:"🎮 Summon #7: ⛔ Mars gone too (511 R☉)! 6 left; Jupiter mourns the inner Solar System",
+   fr:"🎮 Invocation n°7 : ⛔ Mars engloutie aussi (511 R☉) ! Plus que 6 ; Jupiter pleure le système intérieur"}],
+ [1.8825e7,"star",{zh:"💀 致命错误：氢燃料耗尽，进入蓝回绕阶段，开始收缩……",en:"💀 FATAL: hydrogen exhausted — entering the blue loop, shrinking...",fr:"💀 ERREUR FATALE : hydrogène épuisé — entrée dans la boucle bleue, contraction…"}],
+ [1.9e7,"sys",{zh:"🎮 第 8 次召唤：恒星缩小，10 颗行星全部回归！金星 10,032°C 开始蒸发",
+   en:"🎮 Summon #8: the star shrank — all 10 planets return! Venus at 10,032°C begins evaporating",
+   fr:"🎮 Invocation n°8 : l'étoile a rétréci — les 10 planètes reviennent ! Vénus à 10 032 °C s'évapore"}],
+ [1.9025e7,"star",{zh:"⚠ 警告：开始燃烧核心氦燃料……",en:"⚠ WARNING: core helium burning begins...",fr:"⚠ ALERTE : combustion de l'hélium en cours…"}],
+ [1.9425e7,"star",{zh:"⚠ 警告：氦燃料不足，进入渐近巨星分支（AGB），开始膨胀……",en:"⚠ WARNING: helium low — entering the AGB, expanding...",fr:"⚠ ALERTE : hélium faible — entrée dans la branche AGB, expansion…"}],
+ [1.99e7,"sys",{zh:"🎮 第 9 次召唤：⛔ 谷神星也被吞没（722 R☉）！只剩 5 颗；冥王星第 9 次岩浆浴",
+   en:"🎮 Summon #9: ⛔ Ceres engulfed too (722 R☉)! 5 left; Pluto's 9th lava bath",
+   fr:"🎮 Invocation n°9 : ⛔ Cérès engloutie aussi (722 R☉) ! Plus que 5 ; 9ᵉ bain de lave de Pluton"}],
+ [1.991e7,"star",{zh:"⛔ 错误：氦燃料低于 10%，进入超 AGB，持续膨胀并快速丢失质量……",en:"⛔ ERROR: helium below 10% — entering the super-AGB, expanding and losing mass rapidly",fr:"⛔ ERREUR : hélium < 10 % — entrée en super-AGB, expansion et perte de masse rapide"}],
+ [1.997e7,"sys",{zh:"💥 红超巨星的膨胀摧毁了戴森球！恒星变为 S 型红超巨星，s-过程元素丰度上升",
+   en:"💥 Expansion destroys the Dyson Sphere! The star becomes an S-type red supergiant; s-process elements rise",
+   fr:"💥 L'expansion détruit la sphère de Dyson ! L'étoile devient supergéante rouge de type S ; éléments s en hausse"}],
+ [1.999e7,"sys",{zh:"🎮 最后召唤：⛔ 连木星都被吞没（1,272 R☉ ≈ 5.9 AU）！只剩土星、天王星、海王星、冥王星",
+   en:"🎮 Final summon: ⛔ even Jupiter engulfed (1,272 R☉ ≈ 5.9 AU)! Only Saturn, Uranus, Neptune & Pluto remain",
+   fr:"🎮 Dernière invocation : ⛔ Jupiter engloutie (1 272 R☉ ≈ 5,9 al) ! Plus que Saturne, Uranus, Neptune et Pluton"}],
+ [1.99925e7,"star",{zh:"💀 致命错误：氦燃料耗尽，开始碳燃烧——产生氖、钠、镁、铝",en:"💀 FATAL: helium exhausted — carbon burning begins, forging neon, sodium, magnesium, aluminium",fr:"💀 ERREUR FATALE : hélium épuisé — combustion du carbone : néon, sodium, magnésium, aluminium"}],
+ [2.0000005e7,"star",{zh:"💀 致命错误：碳燃料耗尽，开始氖燃烧——产生氧和镁",en:"💀 FATAL: carbon exhausted — neon burning begins, forging oxygen and magnesium",fr:"💀 ERREUR FATALE : carbone épuisé — combustion du néon : oxygène et magnésium"}],
+ [2.0000010e7,"star",{zh:"💀 致命错误：氖燃料耗尽（20,000,012 年 6 个月），开始氧燃烧——产生硅、硫、氩、钙",en:"💀 FATAL: neon exhausted (yr 20,000,012½) — oxygen burning forges silicon, sulfur, argon, calcium",fr:"💀 ERREUR FATALE : néon épuisé — combustion de l'oxygène : silicium, soufre, argon, calcium"}],
+ [2.00000155e7,"star",{zh:"💀 致命错误：氧燃料耗尽（+6 个月），开始镁燃烧——产生硅、磷、氩、钙、钛",en:"💀 FATAL: oxygen exhausted (+6 months) — magnesium burning forges Si, P, Ar, Ca, Ti",fr:"💀 ERREUR FATALE : oxygène épuisé — combustion du magnésium : Si, P, Ar, Ca, Ti"}],
+ [2.0000016e7,"star",{zh:"💀 致命错误：镁燃料耗尽（+7 天），开始硅燃烧——产生镍-56（半衰期 6.075 天→钴-56→铁）",en:"💀 FATAL: magnesium exhausted (+7 days) — silicon burning makes Ni-56 (t½ 6.075 d → Co-56 → Fe)",fr:"💀 ERREUR FATALE : magnésium épuisé — combustion du silicium : Ni-56 (t½ 6,075 j → Co-56 → Fe)"}],
+ [2.000001604e7,"star",{zh:"💀 致命错误：硅燃料耗尽（+15 天）。核心温度 30 亿°C，铁核 1.44 M☉——铁无法聚变，核心坍缩在即！",en:"💀 FATAL: silicon exhausted (+15 days). Core at 3 billion °C; iron core 1.44 M☉ — iron can't fuse. Collapse imminent!",fr:"💀 ERREUR FATALE : silicium épuisé (+15 j). Cœur à 3 milliards °C ; noyau de fer 1,44 M☉ — le fer ne fusionne pas. Collapse imminent !"}],
+ [2.0000017e7,"sys",{zh:"💥 II 型超新星爆发！光度 96.88 亿倍太阳（假光球）——辐射摧毁 30 光年内所有行星大气，遗迹将孕育下一代恒星（包括未来的太阳）",
+   en:"💥 Type II supernova! Luminosity 9.688 billion L☉ (fake photosphere) — radiation strips atmospheres within 30 ly; the remnant seeds future stars (including the future Sun)",
+   fr:"💥 Supernova de type II ! Luminosité 9,688 milliards L☉ (fausse photosphère) — atmoshères arrachées dans 30 al ; le rémanent engendrera les futures étoiles (dont le futur Soleil)"}],
+ [2.0001e7,"sys",{zh:"⚛ 所有元素转化为中子——中子星诞生，成为释放致命 X 射线的脉冲星。【模拟结束】",
+   en:"⚛ All elements converted to neutrons — a neutron star is born, pulsing deadly X-rays. [SIMULATION COMPLETE]",
+   fr:"⚛ Tous les éléments deviennent des neutrons — naissance d'une étoile à neutrons pulsant des rayons X mortels. [FIN DE LA SIMULATION]"}],
+];
+
+/* ============ 时间轴与变速 ============ */
+const S=t=>Math.sign(t)*Math.log10(1+Math.abs(t));
+const T_END=2.0001e7, S_MIN=0, S_MAX=S(T_END);
+const Ks=K.map(k=>[S(k[0]),...k]);
+const CKs=CK.map(k=>[S(k[0]),...k]);
+const sToT=s=>Math.sign(s)*(Math.pow(10,Math.abs(s))-1);
+let sPos=0,tPos=0,playing=false,shownEv=new Set(),ended=false;
+const DAY=1/365.25;
+function rateFor(key){ /* 正常模式：每帧步长（年） */
+  if(key==="si_burn") return DAY/60;               /* 硅燃烧：每秒 1 天 */
+  if(key==="fe") return DAY;                       /* 铁核坍缩瞬间（物理上 <1 秒）加速通过 */
+  if(key==="mg_burn") return DAY;                  /* 镁燃烧：每帧 1 天 */
+  if(key==="ne_burn"||key==="o_burn") return 7*DAY;/* 氖/氧燃烧：每帧 7 天 */
+  if(key==="c_burn") return 100;                   /* 碳燃烧：每帧 100 年 */
+  if(/agb|s_star|sagb|eagb/.test(key)) return 1e4; /* AGB：每帧 1 万年 */
+  if(/hook|hg|osg|rsg|blueloop|he_burn/.test(key)) return 1e3; /* 次巨星/赫氏空隙/红巨星/氦燃烧：每帧 1000 年 */
+  if(key==="sn") return 3300;                      /* 超新星→中子星（约 98 万年）数秒内播完 */
+  return 1e4;                                      /* 主序：每帧 1 万年 */
+}
+const objK=a=>({t:a[0],R:a[1],T:a[2],L:a[3],key:a[4],spec:a[5],mass:a[6]});
+const lerp=(a,b,f)=>a+(b-a)*f;
+function stateAt(s){
+  if(s<=Ks[0][0])return objK(K[0]);
+  for(let i=0;i<Ks.length-1;i++){
+    if(s>=Ks[i][0]&&s<=Ks[i+1][0]){
+      const f=(s-Ks[i][0])/(Ks[i+1][0]-Ks[i][0]),a=K[i],b=K[i+1];
+      const mix=(x,y)=>(x==null||y==null)?(f<.5?(x??y):(y??x)):Math.exp(lerp(Math.log(x),Math.log(y),f));
+      return {t:lerp(a[0],b[0],f),R:mix(a[1],b[1]),T:mix(a[2],b[2]),L:mix(a[3],b[3]),
+              key:f<.5?a[4]:b[4],spec:f<.5?a[5]:b[5],mass:f<.5?a[6]:b[6]};
+    }
+  }
+  return objK(K[K.length-1]);
+}
+const ELEMENTS=["H","He","C","O","Ne","Mg","Si","Fe","N"];
+const ECOLOR={H:"#7ec8ff",He:"#ffd9a0",C:"#b0b0c0",O:"#ff6c6c",Ne:"#c89bff",Mg:"#8fd0a0",Si:"#e8c86c",Fe:"#ff9d6c",N:"#9adfff"};
+function coreAt(s){
+  if(s<=CKs[0][0])return{T:CK[0][1],M:CK[0][2],c:CK[0][3]};
+  for(let i=0;i<CKs.length-1;i++){
+    if(s>=CKs[i][0]&&s<=CKs[i+1][0]){
+      const f=(s-CKs[i][0])/(CKs[i+1][0]-CKs[i][0]),a=CK[i],b=CK[i+1],c={};
+      ELEMENTS.forEach(e=>c[e]=lerp(a[3][e]||0,b[3][e]||0,f));
+      return{T:Math.exp(lerp(Math.log(a[1]),Math.log(b[1]),f)),M:lerp(a[2],b[2],f),c};
+    }
+  }
+  const l=CK[CK.length-1];return{T:l[1],M:l[2],c:l[3]};
+}
+function tempColor(T){
+  const stops=[[1400,[255,70,10]],[2800,[255,130,40]],[4500,[255,190,110]],[5800,[255,240,205]],
+    [8000,[255,255,255]],[12000,[205,225,255]],[30000,[160,190,255]],[140000,[150,180,255]]];
+  if(T<=stops[0][0])return stops[0][1];
+  for(let i=0;i<stops.length-1;i++){
+    const[t1,c1]=stops[i],[t2,c2]=stops[i+1];
+    if(T>=t1&&T<=t2){const f=(T-t1)/(t2-t1);
+      return[Math.round(lerp(c1[0],c2[0],f)),Math.round(lerp(c1[1],c2[1],f)),Math.round(lerp(c1[2],c2[2],f))];}
+  }
+  return stops[stops.length-1][1];
+}
+/* ============ 主画布 ============ */
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const W=cv.width,H=cv.height,CX=W/2,CY=H/2;
+let snFlash=0;
+function drawBg(){ctx.fillStyle="#030308";ctx.fillRect(0,0,W,H);
+  for(let i=0;i<130;i++){const x=(i*173.3)%W,y=(i*97.7)%H;
+    ctx.globalAlpha=.25+.5*Math.abs(Math.sin(i*3.1+performance.now()/900));
+    ctx.fillStyle="#cdd6ff";ctx.fillRect(x,y,1.4,1.4);}
+  ctx.globalAlpha=1;}
+function drawStar(st){
+  const key=st.key;
+  if(key==="ns"){ /* 脉冲星 */
+    const a=performance.now()/500;
+    const bx=Math.cos(a),by=Math.sin(a);
+    const beam=(dx,dy)=>{const g=ctx.createLinearGradient(CX,CY,CX+dx*260,CY+dy*260);
+      g.addColorStop(0,"rgba(180,220,255,.8)");g.addColorStop(1,"rgba(180,220,255,0)");
+      ctx.strokeStyle=g;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(CX,CY);
+      ctx.lineTo(CX+dx*260,CY+dy*260);ctx.stroke();};
+    beam(bx,by);beam(-bx,-by);
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(CX,CY,4,0,6.283);ctx.fill();
+    const g=ctx.createRadialGradient(CX,CY,0,CX,CY,40);
+    g.addColorStop(0,"rgba(160,200,255,.5)");g.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=g;ctx.fillRect(CX-40,CY-40,80,80);return;}
+  if(key==="sn"){ /* 超新星：假光球 */
+    snFlash=Math.min(1,snFlash+.05);
+    ctx.fillStyle=`rgba(255,255,255,${snFlash*.85})`;ctx.fillRect(0,0,W,H);
+    const prog=(performance.now()%6000)/6000;
+    const r=lerp(60,320,prog);
+    const g=ctx.createRadialGradient(CX,CY,r*.5,CX,CY,r);
+    g.addColorStop(0,"rgba(255,220,160,.7)");g.addColorStop(.7,"rgba(255,140,60,.35)");
+    g.addColorStop(1,"rgba(255,80,40,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(CX,CY,r,0,6.283);ctx.fill();
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(CX,CY,7,0,6.283);ctx.fill();
+    ctx.fillStyle="rgba(255,200,120,.9)";ctx.font="13px sans-serif";ctx.textAlign="center";
+    ctx.fillText(T("fake")+" · 9.688×10⁹ L☉",CX,CY+34);return;}
+  if(st.R==null)return;
+  const Rpx=Math.min(10*Math.sqrt(st.R),H/2-16);
+  const puls=/rsg|osg|agb|sagb|s_star|eagb|hg_|blueloop|he_burn/.test(key)
+    ?1+0.05*Math.sin(performance.now()/160):1;
+  const[r,g,b]=tempColor(st.T);
+  const glow=ctx.createRadialGradient(CX,CY,0,CX,CY,Rpx*puls*2.1);
+  glow.addColorStop(0,`rgba(${r},${g},${b},.5)`);glow.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+  const body=ctx.createRadialGradient(CX-Rpx*.25,CY-Rpx*.25,Rpx*.1,CX,CY,Rpx*puls);
+  body.addColorStop(0,"rgba(255,255,255,.95)");body.addColorStop(.25,`rgb(${r},${g},${b})`);
+  body.addColorStop(1,`rgb(${Math.max(0,r-90)},${Math.max(0,g-70)},${Math.max(0,b-60)})`);
+  ctx.fillStyle=body;ctx.beginPath();ctx.arc(CX,CY,Math.max(Rpx*puls,2.2),0,6.283);ctx.fill();
+}
+/* ============ 赫罗图 ============ */
+const hr=document.getElementById('hr'),hx2=hr.getContext('2d');
+const HRW=hr.width,HRH=hr.height;
+const LTmin=3.35,LTmax=4.75,LLmin=3.8,LLmax=10.3;
+const hxp=T=>(LTmax-Math.log10(T))/(LTmax-LTmin)*HRW;
+const hyp=L=>(LLmax-Math.log10(Math.max(L,1e-9)))/(LLmax-LLmin)*HRH;
+const MSB=[[4.7,4.4],[4.4,3.6],[4.2,2.8],[4.0,2.2],[3.85,1.6],[3.7,0],[3.6,-1.2],[3.5,-2.4]];
+function drawHR(s){
+  hx2.fillStyle="#070714";hx2.fillRect(0,0,HRW,HRH);
+  hx2.strokeStyle="#1c1c3a";hx2.fillStyle="#55557a";hx2.font="9px sans-serif";
+  [[3.5,"3,000K"],[4.0,"10,000K"],[4.5,"30,000K"]].forEach(([lg,lb])=>{
+    const x=(LTmax-lg)/(LTmax-LTmin)*HRW;hx2.beginPath();hx2.moveTo(x,0);hx2.lineTo(x,HRH);hx2.stroke();
+    hx2.textAlign="center";hx2.fillText(lb,x,HRH-4);});
+  [[4,"10⁴"],[6,"10⁶"],[8,"10⁸"],[10,"10¹⁰"]].forEach(([lg])=>{
+    const y=(LLmax-lg)/(LLmax-LLmin)*HRH;hx2.beginPath();hx2.moveTo(0,y);hx2.lineTo(HRW,y);hx2.stroke();
+    hx2.textAlign="left";hx2.fillText("10^"+lg,3,y-3);});
+  hx2.strokeStyle="rgba(126,200,255,.30)";hx2.lineWidth=4;hx2.lineCap="round";hx2.beginPath();
+  MSB.forEach((p,i)=>{const x=(LTmax-p[0])/(LTmax-LTmin)*HRW,y=(LLmax-p[1])/(LLmax-LLmin)*HRH;
+    i?hx2.lineTo(x,y):hx2.moveTo(x,y);});
+  hx2.stroke();hx2.lineWidth=1;
+  hx2.fillStyle="rgba(126,200,255,.4)";hx2.textAlign="center";hx2.fillText("主序带 MS",HRW*.55,HRH*.42);
+  /* 暗轨迹 */
+  hx2.strokeStyle="rgba(255,255,255,.14)";hx2.beginPath();let st=false;
+  K.forEach(k=>{if(!k[2])return;const x=hxp(k[2]),y=hyp(k[3]);st?hx2.lineTo(x,y):hx2.moveTo(x,y);st=true;});
+  hx2.stroke();
+  /* 亮轨迹 */
+  hx2.strokeStyle="rgba(255,179,71,.85)";hx2.lineWidth=2;hx2.beginPath();st=false;
+  for(let i=0;i<K.length;i++){if(!K[i][2]||Ks[i][0]>s)break;
+    const x=hxp(K[i][2]),y=hyp(K[i][3]);st?hx2.lineTo(x,y):hx2.moveTo(x,y);st=true;}
+  hx2.stroke();hx2.lineWidth=1;
+  const stt=stateAt(s);
+  if(stt.T&&stt.L){const x=hxp(stt.T),y=hyp(stt.L),t=performance.now()/300;
+    hx2.strokeStyle="rgba(255,179,71,.7)";hx2.beginPath();hx2.arc(x,y,6+3*Math.sin(t),0,6.283);hx2.stroke();
+    hx2.fillStyle="#ffd9a0";hx2.beginPath();hx2.arc(x,y,3.6,0,6.283);hx2.fill();}
+  hx2.fillStyle="#8888aa";hx2.font="9px sans-serif";hx2.textAlign="right";
+  hx2.fillText("← hot",HRW-4,10);hx2.fillText("cool →",HRW-4,HRH-14);
+}
+/* ============ UI ============ */
+const $=id=>document.getElementById(id);
+function fmtT(t){
+  if(t<1/365.25/2)return"0";
+  if(t<1)return Math.max(1,Math.round(t*365.25))+(lang==='zh'?" 天":lang==='fr'?" j":" d");
+  if(t>=1e8)return(t/1e8).toFixed(2)+(lang==='zh'?" 亿年":" Gyr");
+  if(t>=1e6)return(t/1e6).toLocaleString(undefined,{maximumFractionDigits:2})+(lang==='fr'?" M ans":lang==='en'?" Myr":" 百万年");
+  if(t>=1e4)return Math.round(t/1e4)+(lang==='zh'?" 万年":lang==='fr'?" ×10⁴ ans":" ×10⁴ yr");
+  return Math.round(t).toLocaleString()+(lang==='zh'?" 年":lang==='fr'?" ans":" yr");
+}
+function toast(txt){const el=$('toast');el.textContent=txt;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
+function chat(who,txt){const div=document.createElement('div');div.className="msg "+who;
+  const nm=who==='star'?(lang==='fr'?'★ HD 72726':'★ HD 72726'):'◈ '+(lang==='fr'?'Événement système':lang==='en'?'System event':'系统事件');
+  div.innerHTML=`<span class="who">${nm}</span>${txt}`;
+  const c=$('chat');c.appendChild(div);c.scrollTop=c.scrollHeight;
+  while(c.children.length>40)c.removeChild(c.firstChild);}
+const compEl=$('comp');
+const compRows={};
+ELEMENTS.forEach(e=>{if(e==="N")return;
+  const row=document.createElement('div');row.className="crow";
+  row.innerHTML=`<span class="nm" data-iel="${e}"></span><div class="cbar"><i style="background:${ECOLOR[e]}"></i></div><span class="pc"></span>`;
+  compEl.appendChild(row);compRows[e]={bar:row.querySelector('i'),pc:row.querySelector('.pc')};});
+const NSrow=document.createElement('div');NSrow.className="crow";
+NSrow.innerHTML=`<span class="nm" data-iel="N"></span><div class="cbar"><i style="background:${ECOLOR.N}"></i></div><span class="pc"></span>`;
+compEl.appendChild(NSrow);compRows.N={bar:NSrow.querySelector('i'),pc:NSrow.querySelector('.pc')};
+function updatePanel(st,core){
+  $('clock').textContent=fmtT(st.t);
+  $('dStage').textContent=stName(st.key);
+  $('dSpec').textContent=st.spec||'—';
+  $('dTime').textContent=fmtT(st.t);
+  $('dMass').textContent=st.mass?st.mass.toFixed(2)+" M☉":"—";
+  $('dR').textContent=st.R!=null?(st.key==="ns"?"16,684 km":st.R>=1?st.R.toLocaleString()+" R☉":(st.R*100).toFixed(2)+"% R☉"):"—";
+  const lum=st.L==null?"—":st.L>=10?st.L.toLocaleString()+" L☉":st.L.toExponential(2)+" L☉";
+  $('dL').textContent=st.key==="sn"?lum+" "+T("fake"):lum;
+  $('dT').textContent=st.T?Math.round(st.T).toLocaleString()+" K":"—";
+  $('dCT').textContent=core.T>=1e9?(core.T/1e9).toFixed(2)+"×10⁹ K ("+Math.round(core.T/1e9).toLocaleString()+" million °C)"
+    :core.T>=1e8?(core.T/1e8).toFixed(2)+"×10⁸ K":Math.round(core.T).toLocaleString()+" K";
+  const cm=$('dCM');cm.textContent=core.M.toFixed(2)+" M☉";
+  cm.className=core.M>=1.44&&st.key!=="ns"?"danger":"";
+  ELEMENTS.forEach(e=>{const r=compRows[e],v=core.c[e]||0;
+    r.bar.style.width=(v*100).toFixed(1)+"%";r.pc.textContent=(v*100).toFixed(1)+"%";});
+}
+function checkEvents(prev,cur){
+  EV.forEach((e,i)=>{const s=S(e[0]);
+    if(prev<s&&cur>=s&&!shownEv.has(i)){shownEv.add(i);chat(e[1],e[2][lang]);toast(e[2][lang].slice(0,46));}});
+  if(prev<S(2.0000017e7)&&cur>=S(2.0000017e7))snFlash=0.2;
+  if(cur<prev){EV.forEach((e,i)=>{if(S(e[0])>cur)shownEv.delete(i)});ended=false;}
+}
+let last=performance.now();
+function loop(now){
+  const dt=(now-last)/1000;last=now;
+  if(playing){
+    const frames=Math.min(dt*60,3),mode=$('speedSel').value;
+    const st0=stateAt(sPos),prev=sPos;let rate;
+    if(mode!=="auto"&&/^(zams|ms|lms|blueloop|blueloop2|he_burn|c_burn)$/.test(st0.key))
+      rate=parseFloat(mode);                              /* 固定速度：适用 H/He/C 燃烧 */
+    else rate=rateFor(st0.key);
+    tPos+=rate*frames;
+    if(tPos>=T_END){tPos=T_END;playing=false;$('playBtn').textContent=T("play");
+      if(!ended){ended=true;toast(T("endMsg"));chat("sys",T("endMsg"));}}
+    sPos=S(tPos);
+    checkEvents(prev,sPos);
+    $('scrub').value=(sPos/S_MAX)*10000;
+  }
+  drawBg();
+  const st=stateAt(sPos),core=coreAt(sPos);
+  if(st.key!=="sn")drawStar(st);else drawStar(st);
+  drawHR(sPos);
+  updatePanel(st,core);
+  requestAnimationFrame(loop);
+}
+$('playBtn').onclick=()=>{if(tPos>=T_END){sPos=0;tPos=0;shownEv.clear();ended=false;}
+  playing=!playing;$('playBtn').textContent=playing?T("pause"):T("play");};
+$('restartBtn').onclick=()=>{sPos=0;tPos=0;shownEv.clear();ended=false;snFlash=0;$('chat').innerHTML='';
+  chat('sys',T("welcome"));};
+$('scrub').oninput=e=>{const f=e.target.value/10000;sPos=S_MIN+f*(S_MAX-S_MIN);tPos=sToT(sPos);
+  EV.forEach((ev,i)=>{if(S(ev[0])>sPos)shownEv.delete(i)});ended=sPos>=S_MAX;};
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=T(el.dataset.i18n);});
+  document.querySelectorAll('[data-iel]').forEach(el=>{el.textContent=T("el"+el.dataset.iel);});
+  $('playBtn').textContent=playing?T("pause"):T("play");
+}
+$('langSel').onchange=e=>{lang=e.target.value;applyLang();
+  chat('sys',{zh:"已切换语言 / Language switched / Langue changée",en:"已切换语言 / Language switched / Langue changée",fr:"已切换语言 / Language switched / Langue changée"}[lang]);};
+applyLang();
+chat('sys',T("welcome"));
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
