@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星际迷航：毒星惊涛 — S1-295事件 | Star Trek: The Toxic Star</title>
+<style>
+:root{
+  --bg:#050810; --panel:#0c1424; --panel2:#101c33; --line:#1e3a5f;
+  --gold:#e8b13c; --gold2:#ffd77a; --blue:#5fb4ff; --red:#ff5a4e;
+  --txt:#dce8f7; --dim:#8aa3c0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:"Segoe UI","Microsoft YaHei",Arial,sans-serif;overflow-x:hidden}
+/* starfield */
+#stars,#stars2,#stars3{position:fixed;inset:0;pointer-events:none;z-index:0}
+#stars{background:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 40% 70%,#cfe4ff,transparent),radial-gradient(2px 2px at 65% 20%,#fff,transparent),radial-gradient(1px 1px at 80% 55%,#ffe9c4,transparent),radial-gradient(1px 1px at 10% 85%,#fff,transparent),radial-gradient(1px 1px at 90% 90%,#cfe4ff,transparent),radial-gradient(1.5px 1.5px at 55% 45%,#fff,transparent);background-size:600px 600px;animation:drift 120s linear infinite}
+#stars2{background:radial-gradient(1px 1px at 15% 60%,#fff,transparent),radial-gradient(1.5px 1.5px at 75% 35%,#fff,transparent),radial-gradient(1px 1px at 35% 15%,#9fc4ff,transparent),radial-gradient(1px 1px at 85% 75%,#fff,transparent);background-size:400px 400px;opacity:.6;animation:drift 80s linear infinite reverse}
+@keyframes drift{from{background-position:0 0}to{background-position:600px 600px}}
+header{position:relative;z-index:5;text-align:center;padding:26px 16px 12px}
+header h1{font-size:clamp(22px,4vw,40px);letter-spacing:3px;color:var(--gold);text-shadow:0 0 24px rgba(232,177,60,.35)}
+header h2{font-size:clamp(13px,2vw,18px);font-weight:400;color:var(--dim);letter-spacing:4px;margin-top:6px}
+.badge{display:inline-block;margin-top:10px;padding:3px 14px;border:1px solid var(--line);border-radius:20px;font-size:12px;color:var(--dim);letter-spacing:2px}
+/* control bar */
+#bar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;background:rgba(8,14,28,.92);backdrop-filter:blur(6px);border-block:1px solid var(--line);padding:10px 14px}
+.btn{background:linear-gradient(180deg,#1a2c4d,#12203a);border:1px solid var(--line);color:var(--gold2);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;letter-spacing:1px;transition:.2s}
+.btn:hover{border-color:var(--gold);box-shadow:0 0 12px rgba(232,177,60,.3)}
+.btn.primary{background:linear-gradient(180deg,#7a5a17,#5c4210);border-color:var(--gold)}
+.btn.danger{border-color:var(--red);color:#ffb0a8}
+select{background:#0f1c33;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-size:13px}
+label{font-size:12px;color:var(--dim)}
+.switch{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer}
+.switch input{accent-color:var(--gold)}
+/* progress */
+#progWrap{width:100%;max-width:1100px;margin:12px auto 0;height:10px;background:#0a1222;border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer}
+#prog{height:100%;width:0%;background:linear-gradient(90deg,var(--gold),#ff8b3d);transition:width .5s linear}
+#timeLbl{text-align:center;font-size:12px;color:var(--dim);margin-top:5px;font-variant-numeric:tabular-nums}
+/* tabs */
+#tabs{display:flex;justify-content:center;gap:6px;margin:16px 0 0;position:relative;z-index:5;flex-wrap:wrap}
+.tab{padding:9px 22px;border:1px solid var(--line);border-bottom:none;border-radius:10px 10px 0 0;background:var(--panel);color:var(--dim);cursor:pointer;font-size:14px;letter-spacing:1px}
+.tab.on{background:var(--panel2);color:var(--gold);border-color:var(--gold)}
+main{position:relative;z-index:5;max-width:1100px;margin:0 auto;padding:0 14px 60px}
+.page{display:none;background:var(--panel);border:1px solid var(--line);border-radius:0 12px 12px 12px;padding:22px}
+.page.on{display:block}
+/* viewer */
+#stage{position:relative;height:340px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#2a0f0d 0%,#12060a 45%,#050810 100%)}
+#giant{position:absolute;left:50%;top:58%;width:240px;height:240px;transform:translate(-50%,-50%);border-radius:50%;
+ background:radial-gradient(circle at 38% 34%,#ffb08a 0%,#ff6a3d 28%,#c22415 60%,#6d0d08 100%);
+ box-shadow:0 0 60px 18px rgba(255,80,40,.45),0 0 160px 60px rgba(255,60,30,.18);animation:pulse 6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.07)}}
+#giant::after{content:"";position:absolute;inset:-30px;border-radius:50%;background:radial-gradient(circle,rgba(180,190,200,.10) 20%,transparent 60%);filter:blur(2px)}
+#ship{position:absolute;right:8%;top:18%;font-size:26px;filter:drop-shadow(0 0 8px rgba(95,180,255,.7));animation:hover 5s ease-in-out infinite}
+@keyframes hover{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-8px) rotate(-6deg)}}
+#alert{position:absolute;inset:0;background:radial-gradient(circle,transparent 40%,rgba(255,40,30,.28));opacity:0;transition:.4s;pointer-events:none}
+#alert.on{opacity:1;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}
+#sceneTag{position:absolute;left:14px;top:12px;font-size:12px;color:var(--gold);letter-spacing:2px;background:rgba(5,10,20,.7);padding:4px 10px;border:1px solid var(--line);border-radius:6px}
+#sfxLbl{position:absolute;right:14px;top:12px;font-size:12px;color:var(--blue);background:rgba(5,10,20,.7);padding:4px 10px;border:1px solid var(--line);border-radius:6px}
+/* subtitles */
+#subs{margin-top:16px;min-height:120px;background:#081020;border:1px solid var(--line);border-radius:10px;padding:18px 22px;text-align:center}
+#spk{font-size:12px;letter-spacing:3px;color:var(--blue);margin-bottom:8px}
+#zh{font-size:clamp(16px,2.6vw,24px);line-height:1.5;color:#fff}
+#en{font-size:clamp(13px,2vw,17px);line-height:1.5;color:var(--dim);margin-top:6px;font-style:italic}
+#subNote{font-size:12px;color:var(--red);margin-top:10px;display:none}
+/* scene list */
+#sceneList{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.sc{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);cursor:pointer;font-size:13px;transition:.2s}
+.sc:hover{border-color:var(--gold)}
+.sc.on{border-color:var(--gold);background:#1a2a49}
+.sc .t{color:var(--gold2)}.sc .d{color:var(--dim);font-size:11px;margin-top:3px}
+/* tables */
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+td,th{border:1px solid var(--line);padding:9px 12px;text-align:left}
+th{background:#132440;color:var(--gold);letter-spacing:1px}
+tr:nth-child(even) td{background:#0d1830}
+td:first-child{color:var(--gold2);white-space:nowrap}
+/* chapters */
+.chap{border-left:3px solid var(--gold);padding:10px 16px;margin:14px 0;background:var(--panel2);border-radius:0 8px 8px 0}
+.chap h3{color:var(--gold);font-size:16px;margin-bottom:6px}
+.chap p{font-size:14px;line-height:1.7;color:var(--txt)}
+.chap .en{color:var(--dim);font-size:12.5px;margin-top:4px}
+footer{position:relative;z-index:5;text-align:center;padding:22px;color:var(--dim);font-size:12px;border-top:1px solid var(--line)}
+@media(max-width:640px){#stage{height:260px}}
+</style>
+</head>
+<body>
+<div id="stars"></div><div id="stars2"></div>
+
+<header>
+  <h1 id="hTitle">星际迷航：毒星惊涛</h1>
+  <h2 id="hSub">STAR TREK : THE TOXIC STAR — 事件档案 S1-295</h2>
+  <div class="badge" id="hBadge">USS ODYSSEY NCC-2267 · 粉丝概念站 · 非官方</div>
+</header>
+
+<div id="bar">
+  <button class="btn primary" id="btnPlay">▶ 播放</button>
+  <button class="btn" id="btnStop">■ 停止</button>
+  <button class="btn" id="btnDemo">⚡ 预览模式(约90秒)</button>
+  <span style="width:10px"></span>
+  <label id="lblLang">界面语言：</label>
+  <select id="selUi">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+  </select>
+  <label id="lblVoice">语音：</label>
+  <select id="selVoice">
+    <option value="auto">自动跟随界面语言</option>
+    <option value="zh">中文语音</option>
+    <option value="en">English Voice</option>
+  </select>
+  <label class="switch"><input type="checkbox" id="chkSfx" checked><span id="lblSfx">音效</span></label>
+  <label class="switch"><input type="checkbox" id="chkSub" checked><span id="lblSub">中英双语字幕</span></label>
+</div>
+
+<div id="progWrap" title="点击跳转"><div id="prog"></div></div>
+<div id="timeLbl">00:00 / 15:00</div>
+
+<div id="tabs">
+  <div class="tab on" data-p="pPlay" id="tabPlay">▶ 剧集播放</div>
+  <div class="tab" data-p="pPro" id="tabPro">✦ 序章 · 恒星档案</div>
+  <div class="tab" data-p="pStory" id="tabStory">✦ 剧情大纲 · 8章</div>
+</div>
+
+<main>
+<!-- PLAY -->
+<div class="page on" id="pPlay">
+  <div id="stage">
+    <div id="giant"></div><div id="ship">🚀</div>
+    <div id="alert"></div>
+    <div id="sceneTag">序章</div><div id="sfxLbl">SFX: —</div>
+  </div>
+  <div id="subs">
+    <div id="spk">—</div>
+    <div id="zh"></div><div id="en"></div>
+    <div id="subNote">⚠ 法语字幕暂不支持 — 法语模式下语音可选择中文或英文。</div>
+  </div>
+  <div id="sceneList"></div>
+</div>
+
+<!-- PROLOGUE -->
+<div class="page" id="pPro">
+  <h3 style="color:var(--gold);letter-spacing:2px" id="proT">序章：恒星 S1-295 详细属性</h3>
+  <p style="color:var(--dim);font-size:13px;margin-top:6px" id="proE">Prologue: Stellar profile of S1-295 (Puppis · ~18,000 ly)</p>
+  <table>
+    <tr><th id="thK">属性</th><th id="thV">数值</th></tr>
+    <tr><td>名称</td><td>S1-295 · CSS 473 · 2MASS J08113399-2607524</td></tr>
+    <tr><td>星座 / 距离</td><td>船尾座 Puppis · 约 18,000 光年</td></tr>
+    <tr><td>光谱型</td><td>S6,8e–S8,5e / M7IIIae–M9IIIae（S型红巨星 · 米拉变星）</td></tr>
+    <tr><td>质量</td><td>4.75–6.5 M☉</td></tr>
+    <tr><td>半径</td><td>428.34–494.26 R☉（直径 5.97–6.88 亿 km · 1.99–2.30 AU，可吞没火星）</td></tr>
+    <tr><td>光度</td><td>11,547–18,503 L☉</td></tr>
+    <tr><td>有效温度</td><td>2,891–3,028 K（2,618–2,755 °C）</td></tr>
+    <tr><td>平均密度</td><td>约 75 mg/cm³</td></tr>
+    <tr><td>金属丰度 [Fe/H]</td><td>−0.35 dex（44.67% 太阳金属度）</td></tr>
+    <tr><td>视星等 H / K</td><td>+6.371 / +5.975（H-K +0.396）</td></tr>
+    <tr><td>绝对热星等</td><td>Mbol −5.928</td></tr>
+    <tr><td>坐标</td><td>RA 08h 11m 33.9962s · Dec −26° 07′ 52.432″</td></tr>
+    <tr><td>估计宜居带</td><td>112.0–281.2 AU</td></tr>
+    <tr><td>剧毒重金属异常</td><td style="color:var(--red)">Zn / Cd / Hg / As / Pb 丰度 ≈ 普通类太阳恒星的 100 倍 —— 长期被多文明倾倒太空垃圾所致</td></tr>
+  </table>
+</div>
+
+<!-- STORY -->
+<div class="page" id="pStory">
+  <h3 style="color:var(--gold);letter-spacing:2px">剧情大纲 · 八章灾难小说《毒星惊涛》</h3>
+  <div id="chaps"></div>
+</div>
+</main>
+
+<footer>STAR TREK fan concept · USS ODYSSEY NCC-2267 · S1-295 事件 · 本页所有科学设定均为虚构娱乐</footer>
+
+<script>
+/* ================= UI I18N ================= */
+const UI={
+ zh:{title:"星际迷航：毒星惊涛",sub:"STAR TREK : THE TOXIC STAR — 事件档案 S1-295",badge:"USS ODYSSEY NCC-2267 · 粉丝概念站 · 非官方",
+ play:"▶ 播放",stop:"■ 停止",demo:"⚡ 预览模式(约90秒)",ui:"界面语言：",voice:"语音：",sfx:"音效",subt:"中英双语字幕",
+ tabPlay:"▶ 剧集播放",tabPro:"✦ 序章 · 恒星档案",tabStory:"✦ 剧情大纲 · 8章",lang:"zh-CN",
+ note:"",proT:"序章：恒星 S1-295 详细属性",thK:"属性",thV:"数值"},
+ en:{title:"Star Trek: The Toxic Star",sub:"Case File S1-295 — Fan Concept Episode",badge:"USS ODYSSEY NCC-2267 · FAN CONCEPT · UNOFFICIAL",
+ play:"▶ PLAY",stop:"■ STOP",demo:"⚡ PREVIEW (~90s)",ui:"UI: ",voice:"Voice: ",sfx:"SFX",subt:"Bilingual subtitles",
+ tabPlay:"▶ Episode Player",tabPro:"✦ Prologue: Star File",tabStory:"✦ Story · 8 Chapters",lang:"en-US",
+ note:"",proT:"Prologue: Stellar Profile of S1-295",thK:"Property",thV:"Value"},
+ fr:{title:"Star Trek : L'Étoile Toxique",sub:"Dossier S1-295 — Épisode fan",badge:"USS ODYSSEY NCC-2267 · CONCEPT FAN · NON OFFICIEL",
+ play:"▶ LIRE",stop:"■ ARRÊT",demo:"⚡ APERÇU (~90s)",ui:"Langue : ",voice:"Voix : ",sfx:"Sons",subt:"Sous-titres ZH/EN",
+ tabPlay:"▶ Lecteur",tabPro:"✦ Prologue",tabStory:"✦ Histoire · 8 chapitres",lang:"fr",
+ note:"⚠ Sous-titres français non pris en charge — en mode français, la voix peut être chinoise ou anglaise.",proT:"Prologue : profil de S1-295",thK:"Propriété",thV:"Valeur"}
+};
+/* ================= CHAPTERS ================= */
+const CHAPS=[
+ {zh:"第一章 · 红灯巨兽",en:"Ch.1 The Red Beast",p:"奥德赛2267号抵达S1-295。斯波克报告：锌镉汞砷铅丰度为普通恒星百倍，这颗红巨星是「有毒」的。",pe:"Odyssey arrives at S1-295. Spock reports heavy-metal levels 100x solar: the star is toxic."},
+ {zh:"第二章 · 垃圾地层",en:"Ch.2 Strata of Trash",p:"探测器发现恒星外层垃圾沉积层与古信标：每千年多文明投放百亿吨废弃物。",pe:"Probes reveal garbage strata and an ancient beacon: civilizations dump 10 billion tonnes every millennium."},
+ {zh:"第三章 · 乘客的电池板",en:"Ch.3 The Battery Panel",p:"外交官乘客申请丢弃生锈锌镉汞电池板。柯克签字投放。",pe:"A passenger's rusty Zn-Cd-Hg battery panel is jettisoned by Kirk's order."},
+ {zh:"第四章 · 毒星打嗝",en:"Ch.4 The Star Burps",p:"电池板触发不稳定同位素夹层共振，恒星脉动紊乱，信标警告「共振窗口提前」。",pe:"The panel triggers resonance in unstable isotope layers; the star's pulse destabilizes."},
+ {zh:"第五章 · 重金属海啸",en:"Ch.5 Heavy-Metal Tsunami",p:"S1-295抛出镉雾、汞珠与铅灰火墙，直扑奥德赛号；殖民船「晨露号」求救。",pe:"A metal-laced plasma firestorm attacks Odyssey; colony ship Dewdrop calls for help."},
+ {zh:"第六章 · 伦理争论",en:"Ch.6 The Argument",p:"斯波克提出以同类重金属物作反向信标诱偏火墙。麦考伊质问：还要教银河扔垃圾吗？",pe:"Spock proposes baiting the storm with another toxic object. McCoy objects on moral grounds."},
+ {zh:"第七章 · 半拍之差",en:"Ch.7 Half a Beat",p:"示踪板诱使毒星提前膨胀半拍，火墙折向深空，三百名乘客获救。",pe:"The tracer makes the star expand half a beat early; the storm veers away. 300 saved."},
+ {zh:"第八章 · 隔离区",en:"Ch.8 The Quarantine",p:"联邦设立首个「恒星环境卫生隔离区」。柯克：我们来探索一颗星，却照见自己。",pe:"Federation creates the first Stellar Sanitation Quarantine. Kirk: we found a mirror."}
+];
+/* ================= SCENES (total 900s) ================= */
+const SC=[
+ {d:60,tag:"序章 PROLOGUE",al:0,sfx:"computers",L:[
+  {s:"COMPUTER",zh:"恒星档案载入：S1-295，S型红巨星，米拉变星，距离一万八千光年。",en:"Stellar file loaded: S1-295, S-type red giant, Mira variable, 18,000 light-years.",v:0},
+  {s:"COMPUTER",zh:"警告：光谱显示锌、镉、汞、砷、铅丰度为类太阳恒星的一百倍。",en:"Warning: Zn, Cd, Hg, As, Pb abundances exceed solar values by a factor of one hundred.",v:20},
+  {s:"COMPUTER",zh:"来源推断：多文明长期倾倒太空垃圾。该恒星……是有毒的。",en:"Origin: long-term waste dumping by multiple civilizations. This star is... toxic.",v:40}]},
+ {d:60,tag:"第一章 · 抵达 Ch.1 Arrival",al:0,sfx:"warp",L:[
+  {s:"KIRK",zh:"全员注意，退出曲速。那是……一颗红色的巨兽。",en:"All hands, dropping out of warp. That is... a red beast.",v:0},
+  {s:"SPOCK",zh:"半径四百二十八至四百九十四倍太阳。若置于太阳系，它将吞没水星、金星、地球，甚至火星。",en:"Radius 428 to 494 solar radii. Placed in our system it would engulf Mercury, Venus, Earth, even Mars.",v:18},
+  {s:"MCCOY",zh:"我从医多年，头一次听说恒星需要隔离。",en:"In all my years of medicine, I've never heard of quarantining a star.",v:38}]},
+ {d:70,tag:"第二章 · 垃圾地层 Ch.2 Strata",al:0,sfx:"sonar",L:[
+  {s:"UHURA",zh:"长官，外层尘埃有结构。不是云——是地层。",en:"Sir, there's structure in the outer dust. Not a cloud — strata.",v:0},
+  {s:"SPOCK",zh:"合金泡沫、反应堆石墨、被禁纳米机。这颗恒星的外层是文明的垃圾填埋场。",en:"Alloy foam, reactor graphite, banned nanites. The star's envelope is a civilizational landfill.",v:20},
+  {s:"SCOTT",zh:"这不是恒星，这是银河系的泔水桶！",en:"That's nae a star, that's the galaxy's slop bucket!",v:42}]},
+ {d:60,tag:"第三章 · 古信标 Ch.3 Beacon",al:0,sfx:"beep",L:[
+  {s:"UHURA",zh:"破译完成：每过一千年，各文明投放一百亿吨不可回收废弃物。",en:"Decryption complete: every thousand years, each civilization dumps ten billion tonnes.",v:0},
+  {s:"UHURA",zh:"附加条款：恒星变紫后请勿投喂。请勿携带朋友。",en:"Addendum: do not feed the star after the purple phase. Do not bring friends.",v:22},
+  {s:"KIRK",zh:"我们不是在探索恒星。我们在参观全银河的坏习惯。",en:"We're not exploring a star. We're touring the galaxy's bad habits.",v:42}]},
+ {d:70,tag:"第四章 · 电池板 Ch.4 Battery",al:0,sfx:"metal",L:[
+  {s:"PASSENGER",zh:"舰长，请处理这块旧电池板。锌、镉、汞，低功耗，长寿命……绝对环保。",en:"Captain, please dispose of this old panel. Zinc, cadmium, mercury — low power, long life... eco-friendly.",v:0},
+  {s:"SPOCK",zh:"舰长，向毒星再投一件垃圾缺乏科学必要性，只有象征性侮辱。",en:"Captain, adding trash to a toxic star is scientifically unnecessary and symbolically insulting.",v:22},
+  {s:"KIRK",zh:"斯波克，记录为受控释放。我们不是在污染它——我们只是顺着历史点个头。",en:"Spock, log it as a controlled release. We're not polluting it — we're just nodding to history.",v:44}]},
+ {d:50,tag:"投放 Jettison",al:0,sfx:"launch",L:[
+  {s:"SPOCK",zh:"胶囊进入下降轨迹。三、二、一——接触。",en:"Capsule on descent trajectory. Three, two, one — contact.",v:0},
+  {s:"COMPUTER",zh:"检测到锌、镉、汞谱线。脉动……出现半拍异常。",en:"Zinc, cadmium, mercury lines detected. The pulse is... half a beat off.",v:22},
+  {s:"MCCOY",zh:"吉姆，你刚才往火药桶里弹了根火柴。",en:"Jim, you just flicked a match into a powder keg.",v:38}]},
+ {d:60,tag:"毒星打嗝 Ch.5 The Burp",al:1,sfx:"rumble",L:[
+  {s:"COMPUTER",zh:"警告：不稳定同位素夹层进入共振。共振窗口提前。",en:"Warning: unstable isotope layers entering resonance. Window moved up.",v:0},
+  {s:"SPOCK",zh:"不是因果，是触发。九千年的垃圾，等最后一块拼图。",en:"Not cause, but trigger. Nine thousand years of trash, waiting for the final piece.",v:20},
+  {s:"KIRK",zh:"全员战斗警报。它要打嗝了。",en:"All hands, battle stations. It's about to burp.",v:40}]},
+ {d:70,tag:"重金属海啸 Tsunami",al:1,sfx:"explosion",L:[
+  {s:"SCOTT",zh:"左舷粒子蚀刻百分之十七！它在打磨我的船！",en:"Port-side erosion at seventeen percent! It's sandin' my ship!",v:0},
+  {s:"UHURA",zh:"求救信号！殖民船「晨露号」，三百名乘员，被等离子体咬住尾巴！",en:"Distress call! Colony ship Dewdrop, three hundred aboard, caught by the plasma!",v:20},
+  {s:"KIRK",zh:"接过来。柯克对晨露号：坚持住，我们来了。",en:"Patch them through. Kirk to Dewdrop: hold on, we're coming.",v:42}]},
+ {d:60,tag:"伦理争论 The Argument",al:1,sfx:"alarm",L:[
+  {s:"SPOCK",zh:"方案：投下同类重金属示踪板，诱使下次膨胀提前半拍，让火墙转向无人深空。",en:"Plan: jettison a matching tracer so the next expansion comes half a beat early, veering the storm.",v:0},
+  {s:"MCCOY",zh:"我们还要教全银河继续往火里扔东西吗？",en:"Are we teaching the galaxy to keep throwing things into the fire?",v:22},
+  {s:"KIRK",zh:"今天先扔对地方。发射。",en:"Today we throw it the right way. Launch.",v:42}]},
+ {d:80,tag:"半拍之差 Half a Beat",al:1,sfx:"warp",L:[
+  {s:"SPOCK",zh:"三、二、一——就是现在。",en:"Three, two, one — now.",v:0},
+  {s:"COMPUTER",zh:"示踪板已坠入。毒星正在……向反侧膨胀。火墙转向。",en:"Tracer away. The star is expanding... the other way. Storm veering.",v:16},
+  {s:"SCOTT",zh:"对接臂抓住晨露号了！三百人全数登机！",en:"Docking arm has Dewdrop! All three hundred aboard!",v:34},
+  {s:"UHURA",zh:"信标回复：礼仪评级……上调一级。",en:"Beacon reply: etiquette rating... raised by one.",v:56}]},
+ {d:60,tag:"救援之后 Aftermath",al:0,sfx:"beep",L:[
+  {s:"MCCOY",zh:"三百个生命，零死亡。吉姆，你欠我一次远离恒星的假期。",en:"Three hundred lives, zero dead. Jim, you owe me a vacation far from any star.",v:0},
+  {s:"SPOCK",zh:"舰长，S1-295已确认为一颗有毒的S型红巨星。笑话完毕。",en:"Captain, S1-295 is confirmed to be a toxic S-type red giant. End of joke.",v:22},
+  {s:"KIRK",zh:"记入日志。备注：有些恒星会记得你扔了什么。",en:"Log it. Note: some stars remember what you throw at them.",v:42}]},
+ {d:50,tag:"尾声 · 隔离区 Epilogue",al:0,sfx:"computers",L:[
+  {s:"UHURA",zh:"联邦设立首个恒星环境卫生隔离区。十一死语广播：请勿提前，请勿携友，请勿再来。",en:"Federation creates the first Stellar Sanitation Quarantine. Eleven dead languages: don't come early, don't bring friends.",v:0},
+  {s:"KIRK",zh:"我们来探索一颗星，却照见自己。它会继续红着、肿着，含着我们不肯收拾的东西。",en:"We came to explore a star and found a mirror — red, swollen, full of what we won't clean up.",v:22}]}
+];
+/* ================= BUILD ================= */
+const chapsEl=document.getElementById('chaps');
+CHAPS.forEach(c=>{const d=document.createElement('div');d.className='chap';
+ d.innerHTML='<h3>'+c.zh+' <span style="color:var(--dim);font-size:12px">'+c.en+'</span></h3><p>'+c.p+'</p><p class="en">'+c.pe+'</p>';
+ chapsEl.appendChild(d);});
+const listEl=document.getElementById('sceneList');
+SC.forEach((s,i)=>{const d=document.createElement('div');d.className='sc';d.id='sc'+i;
+ d.innerHTML='<div class="t">'+s.tag+'</div><div class="d">'+fmt(tStart(i))+' – '+fmt(tStart(i)+s.d)+'</div>';
+ d.onclick=()=>{if(playing){seekTo(tStart(i));}else{alertT=i;showLine(i,-1);}};
+ listEl.appendChild(d);});
+function tStart(i){let t=0;for(let k=0;k<i;k++)t+=SC[k].d;return t;}
+const TOTAL=900;
+function fmt(s){s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+/* ================= TABS ================= */
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
+ document.getElementById(t.dataset.p).classList.add('on');});
+/* ================= I18N APPLY ================= */
+function applyUI(l){const u=UI[l];
+ hTitle.textContent=u.title;hSub.textContent=u.sub;hBadge.textContent=u.badge;
+ btnPlay.textContent=u.play;btnStop.textContent=u.stop;btnDemo.textContent=u.demo;
+ lblLang.textContent=u.ui;lblVoice.textContent=u.voice;lblSfx.textContent=u.sfx;lblSub.textContent=u.subt;
+ tabPlay.textContent=u.tabPlay;tabPro.textContent=u.tabPro;tabStory.textContent=u.tabStory;
+ proT.textContent=u.proT;thK.textContent=u.thK;thV.textContent=u.thV;
+ subNote.textContent=u.note;subNote.style.display=(l==='fr')?'block':'none';
+ selUi.value=l;}
+selUi.onchange=()=>applyUI(selUi.value);
+/* ================= AUDIO (SFX via WebAudio) ================= */
+let AC=null;function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();return AC;}
+function tone(f,d,type,g,slide){const a=ac(),o=a.createOscillator(),v=a.createGain();
+ o.type=type;o.frequency.value=f;if(slide)o.frequency.exponentialRampToValueAtTime(slide,a.currentTime+d);
+ v.gain.setValueAtTime(g||0.15,a.currentTime);v.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d);
+ o.connect(v).connect(a.destination);o.start();o.stop(a.currentTime+d);}
+function noise(d,g,fc){const a=ac(),n=a.sampleRate*d,b=a.createBuffer(1,n,a.sampleRate),ch=b.getChannelData(0);
+ for(let i=0;i<n;i++)ch[i]=Math.random()*2-1;const s=a.createBufferSource();s.buffer=b;
+ const f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=fc||400;
+ const v=a.createGain();v.gain.setValueAtTime(g||0.3,a.currentTime);v.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d);
+ s.connect(f).connect(v).connect(a.destination);s.start();}
+function sfxPlay(name){if(!chkSfx.checked)return;try{
+ if(name==='beep'){tone(880,.15,'square',.1);setTimeout(()=>tone(880,.15,'square',.1),220);}
+ else if(name==='alarm'){tone(620,.35,'sawtooth',.12,380);setTimeout(()=>tone(620,.35,'sawtooth',.12,380),450);}
+ else if(name==='rumble'||name==='explosion'){noise(name==='explosion'?2.5:2,name==='explosion'?0.5:0.35,name==='explosion'?220:160);tone(50,2.2,'sine',0.25,30);}
+ else if(name==='warp'){tone(200,1.2,'sine',0.2,1200);noise(1,.12,900);}
+ else if(name==='launch'){tone(300,.7,'sawtooth',.12,90);}
+ else if(name==='metal'){tone(1240,.5,'square',.06,700);tone(740,.6,'triangle',.08,320);}
+ else if(name==='sonar'){tone(520,.8,'sine',.14,520);}
+ else if(name==='computers'){tone(1040,.1,'square',.06);setTimeout(()=>tone(1320,.1,'square',.06),150);setTimeout(()=>tone(1560,.14,'square',.06),300);}
+}catch(e){}}
+/* ================= VOICE ================= */
+function speak(text,lang){try{speechSynthesis.cancel();
+ const u=new SpeechSynthesisUtterance(text);u.lang=(lang==='zh')?'zh-CN':'en-US';
+ const vs=speechSynthesis.getVoices();const pref=vs.find(v=>v.lang===u.lang);
+ if(pref)u.voice=pref;u.rate=1;u.pitch=(lang==='zh')?1.05:1;speechSynthesis.speak(u);}catch(e){}}
+function voiceLang(){const m=selUi.value,v=selVoice.value;
+ if(v!=='auto')return v; if(m==='zh')return 'zh'; if(m==='en')return 'en'; return 'zh';}
+/* ================= PLAYER ================= */
+let playing=false,demo=false,t0=0,elapsed=0,timer=null,alertT=-1;
+function lineAt(i,te){const sc=SC[i];for(let k=sc.L.length-1;k>=0;k--){if(te>=sc.L[k].v)return k;}return -1;}
+function showLine(i,k){const sc=SC[i];
+ document.getElementById('sceneTag').textContent=sc.tag;
+ document.getElementById('sfxLbl').textContent='SFX: '+sc.sfx;
+ document.getElementById('alert').className=sc.al?'on':'';
+ document.querySelectorAll('.sc').forEach(x=>x.classList.remove('on'));
+ document.getElementById('sc'+i).classList.add('on');
+ if(k<0){spk.textContent='—';zh.textContent='⋯';en.textContent='· · ·';return;}
+ const L=sc.L[k];spk.textContent=L.s;
+ zh.textContent=chkSub.checked?L.zh:'';en.textContent=chkSub.checked?L.en:'';
+ if(!chkSub.checked){zh.textContent=L.zh;en.textContent='';}}
+function tick(){const scale=demo?0.1:1;elapsed=(Date.now()-t0)/1000*scale;
+ if(elapsed>=TOTAL){stopAll();showLine(SC.length-1,SC[SC.length-1].L.length-1);return;}
+ prog.style.width=(elapsed/TOTAL*100)+'%';
+ timeLbl.textContent=fmt(elapsed)+' / 15:00'+(demo?' (预览)':'');
+ let i=0,acc=0;while(i<SC.length&&elapsed>=acc+SC[i].d){acc+=SC[i].d;i++;}
+ if(i>=SC.length)return;const te=elapsed-acc;const k=lineAt(i,te);
+ if(k!==alertT){alertT=k;showLine(i,k);if(k>=0){const L=SC[i].L[k];speak(voiceLang()==='zh'?L.zh:L.en,voiceLang());}}}
+btnPlay.onclick=()=>{if(playing)return;playing=true;demo=false;t0=Date.now()-elapsed/1*1000;
+ ac();timer=setInterval(tick,250);tick();};
+btnDemo.onclick=()=>{stopAll();playing=true;demo=true;t0=Date.now();ac();timer=setInterval(tick,250);tick();};
+btnStop.onclick=()=>stopAll();
+function stopAll(){playing=false;clearInterval(timer);try{speechSynthesis.cancel();}catch(e){}
+ elapsed=0;prog.style.width='0%';timeLbl.textContent='00:00 / 15:00';alertT=-1;
+ showLine(0,-1);}
+function seekTo(t){elapsed=t;if(playing){t0=Date.now()-t*1000;}else{elapsed=t;tickStatic(t);}}
+function tickStatic(t){let i=0,acc=0;while(i<SC.length&&t>=acc+SC[i].d){acc+=SC[i].d;i++;}
+ if(i<SC.length){const te=t-acc;alertT=lineAt(i,te);showLine(i,alertT);}}
+progWrap.onclick=e=>{const r=progWrap.getBoundingClientRect();
+ const t=TOTAL*(e.clientX-r.left)/r.width;if(playing)seekTo(t);else{elapsed=t;tickStatic(t);
+ prog.style.width=(t/TOTAL*100)+'%';timeLbl.textContent=fmt(t)+' / 15:00';}};
+chkSub.onchange=()=>{if(alertT>=0)tickStatic(elapsed);};
+applyUI('zh');showLine(0,-1);
+if(speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=()=>{};
+</script>
+</body>
+  </html>
